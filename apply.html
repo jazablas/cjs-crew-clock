@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0f0b08">
+<title>Work at CJ's — The Broaster Kings</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700&family=Big+Shoulders+Display:wght@700;800;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles.css">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<style>
+body{display:block;min-height:100vh;background:radial-gradient(1200px 500px at 50% -10%,rgba(210,58,31,.18),transparent 60%),var(--bg)}
+.ap{max-width:620px;margin:0 auto;padding:36px 18px 60px}
+.ap h1{font-family:var(--display);font-weight:900;font-size:clamp(40px,9vw,64px);line-height:.95;text-transform:uppercase;letter-spacing:.01em}
+.ap h1 span{color:var(--sauce)}
+.ap .lead{color:var(--muted);font-size:16px;margin-top:10px;max-width:46ch}
+.jobs{display:grid;gap:10px;margin-top:22px}
+.job{display:flex;gap:12px;align-items:flex-start;padding:14px;border:1px solid var(--line);border-radius:16px;background:var(--surface);cursor:pointer}
+.job input{margin-top:4px;accent-color:var(--sauce)}
+.job:has(input:checked){border-color:var(--sauce);background:rgba(210,58,31,.08)}
+.job b{font-size:16px;display:block}
+.job .meta{color:var(--muted);font-size:13.5px;margin-top:2px}
+.ap form{margin-top:24px}
+.ap .fgrid2{display:grid;grid-template-columns:1fr 1fr;gap:0 12px}
+@media (max-width:520px){.ap .fgrid2{grid-template-columns:1fr}}
+.ap .done{margin-top:28px;text-align:center;padding:30px 18px;border:1px solid var(--line);border-radius:20px;background:var(--surface)}
+.ap .done svg{width:52px;height:52px;color:var(--ok)}
+.ap .done h2{font-family:var(--display);font-weight:800;font-size:34px;text-transform:uppercase;margin-top:8px}
+.ap footer{margin-top:30px;color:var(--faint);font-size:12.5px;text-align:center}
+</style>
+</head>
+<body>
+<main class="ap" id="ap"><p class="muted">Loading open jobs…</p></main>
+<div id="toast" class="toast" role="status"></div>
+<script>window.__API_BASE__ = ''; window.__LOCAL_MODE__ = true;</script>
+<script src="store.js"></script>
+<script>
+(() => {
+'use strict';
+const {ic, esc, money, now} = CC;
+const root = document.getElementById('ap');
+const want = new URLSearchParams(location.search).get('job');
+const toast = m => { const t = document.getElementById('toast'); t.textContent = m; t.classList.add('show'); clearTimeout(toast.t); toast.t = setTimeout(()=>t.classList.remove('show'), 2600); };
+function render(){
+  const jobs = (CC.db.jobs||[]).filter(j => j.status === 'Open');
+  if (!jobs.length){ root.innerHTML = `<h1>Work at <span>CJ&rsquo;s</span></h1><p class="lead">We&rsquo;re not hiring right now. Check back soon, or stop by the Pico Blvd kitchen and say hi.</p>`; return; }
+  const sel = jobs.find(j => j.id === want)?.id || jobs[0].id;
+  root.innerHTML = `
+    <div class="brand-word" style="font-size:18px">CJ<span>&rsquo;</span>s · The Broaster Kings</div>
+    <h1 style="margin-top:14px">Join the <span>crew</span></h1>
+    <p class="lead">Broasted chicken in LA, from our Pico Blvd kitchen to stadium stands and the Boss Truck. Pick a job and tell us a little about you. It takes two minutes.</p>
+    <form id="apf" novalidate>
+      <div class="label">Open jobs</div>
+      <div class="jobs" role="radiogroup">${jobs.map(j => `<label class="job"><input type="radio" name="job" value="${j.id}" ${j.id===sel?'checked':''}><span><b>${esc(j.title)}</b><span class="meta">${esc(CC.venueById(j.venue)?.name||'')} · ${esc(j.type)} · ${money(j.rate)}/hr</span><span class="meta" style="color:var(--text);margin-top:4px;display:block">${esc(j.desc||'')}</span></span></label>`).join('')}</div>
+      <div class="fgrid2" style="margin-top:12px">
+        <label class="field"><span>Full name</span><input class="input" id="apName" autocomplete="name" required></label>
+        <label class="field"><span>Phone</span><input class="input" id="apPhone" type="tel" autocomplete="tel" required placeholder="(310) 555-0100"></label>
+      </div>
+      <label class="field"><span>Email</span><input class="input" id="apEmail" type="email" autocomplete="email" placeholder="you@example.com"></label>
+      <label class="field"><span>When can you work?</span><input class="input" id="apAvail" placeholder="e.g. Evenings and weekends, not Tuesdays"></label>
+      <label class="field"><span>Experience (optional)</span><textarea class="input" id="apNote" placeholder="Restaurants, food trucks, events… anything counts"></textarea></label>
+      <label class="check"><input type="checkbox" id="apAge"><span>I&rsquo;m at least 16 years old. <span class="faint">If you&rsquo;re under 18 you&rsquo;ll need a work permit.</span></span></label>
+      <button class="btn primary" style="margin-top:18px" type="submit">${ic('check')} Send application</button>
+    </form>
+    <footer>Your info goes only to the CJ&rsquo;s hiring manager.</footer>`;
+  document.getElementById('apf').addEventListener('submit', ev => { ev.preventDefault();
+    const v = id => document.getElementById(id).value.trim();
+    const name = v('apName').replace(/[<>"&`]/g,'').slice(0,60), phone = v('apPhone'), email = v('apEmail');
+    if (name.length < 3){ toast('Add your full name'); return; }
+    if (phone.replace(/\D/g,'').length < 10){ toast('Add a phone number we can text'); return; }
+    if (email && !/^\S+@\S+\.\S+$/.test(email)){ toast('That email looks off'); return; }
+    if (!document.getElementById('apAge').checked){ toast('Please confirm your age'); return; }
+    const job = document.querySelector('input[name=job]:checked').value, jt = CC.db.jobs.find(j=>j.id===job);
+    const note = [v('apAvail') && `Available: ${v('apAvail')}`, v('apNote')].filter(Boolean).join('. ');
+    CC.db.applicants.push({id:CC.id('AP'), job, name, phone, email, stage:'Applied', t:now(), note});
+    CC.notify('mgr', `New application: ${name} for ${jt.title}.`, 'Push', 'hiring'); CC.log(name, `Applied for ${jt.title}`); CC.save();
+    root.innerHTML = `<div class="done">${ic('check')}<h2>Thanks, ${esc(name.split(' ')[0])}</h2><p class="muted">We got your application for <b style="color:var(--text)">${esc(jt.title)}</b>. If it&rsquo;s a fit, we&rsquo;ll text you at ${esc(phone)} to set up an interview.</p></div>`;
+    window.scrollTo(0,0); });
+}
+CC.ready.then(render);
+})();
+</script>
+</body>
+</html>
