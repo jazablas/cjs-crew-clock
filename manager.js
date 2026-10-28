@@ -1,4 +1,4 @@
-/* CJ's Crew Clock — manager console.
+/* CJ's Crew - Clock — manager console.
    Shares data with the crew app through store.js and the sync server. */
 (() => {
 'use strict';
@@ -93,7 +93,7 @@ function render(){
   <div class="m-shell ${M.navOpen?'nav-open':''}">
     <aside class="m-side" aria-label="Manager sections">
       <div class="m-brand">
-        <div class="brand-word">CJ<span>&rsquo;</span>s Crew Clock</div>
+        <div class="brand-word">CJ<span>&rsquo;</span>s Crew - Clock</div>
         <div class="brand-sub">Manager console</div>
       </div>
       <nav class="m-nav">

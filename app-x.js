@@ -1,4 +1,4 @@
-/* CJ's Crew Clock — crew app additions: team chat, checklists, announcements with read receipts,
+/* CJ's Crew - Clock — crew app additions: team chat, checklists, announcements with read receipts,
    shift confirm / swap / release / instant pick-up, availability, early pay, paperwork, training,
    notifications, suggestion box, role switching, late / early reasons and the post-shift survey. */
 (() => {

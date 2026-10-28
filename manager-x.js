@@ -1,4 +1,4 @@
-/* CJ's Crew Clock — manager console, part 2.
+/* CJ's Crew - Clock — manager console, part 2.
    Break planner, team chat, labor vs sales, compliance, tip pooling, checklists, paperwork & training,
    hiring, feedback, integrations, notifications, shift swaps, auto-scheduling and payroll export. */
 (() => {

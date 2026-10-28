@@ -1,4 +1,4 @@
-/* CJ's Crew Clock — shared data store.
+/* CJ's Crew - Clock — shared data store.
    Used by both the employee app (index.html) and the manager console (manager.html).
    Everything is sample data kept on a small sync server (server.py). Open both apps on
    any tabs or devices and they stay in sync. */

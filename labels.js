@@ -32,7 +32,7 @@ function render(){
   ${CC.db.settings.crewAppUrl ? '' : `<div class="alert warn lb-warn">${ic('alert')}<div>These codes point to <b>${esc(CC.crewAppBase())}</b>. Set your permanent crew app address in Rules before printing, or the labels will stop working when this preview address changes.</div></div>`}
   <div class="lb-grid">${tags.map(t => { const v = CC.venueById(t.venue), url = CC.tagUrl(t); return `
     <div class="lb-card">
-      <div class="lb-top"><span class="lb-brand">CJ<span>&rsquo;</span>s Wings</span><span class="lb-crew">Crew clock</span></div>
+      <div class="lb-top"><span class="lb-brand">CJ<span>&rsquo;</span>s Wings</span><span class="lb-crew">Crew - clock</span></div>
       <div class="lb-tap"><span class="lb-nfc">${ic('nfc')}</span><div><b>Tap phone here</b><small>to clock in, take a break or clock out</small></div></div>
       <div class="lb-qr">${qrSvg(url)}</div>
       <div class="lb-or">No NFC? Scan with your camera</div>

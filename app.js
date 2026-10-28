@@ -1,4 +1,4 @@
-/* CJ's Crew Clock — employee time clock prototype.
+/* CJ's Crew - Clock — employee time clock prototype.
    Data lives in the shared store (store.js), kept on the sync server and shared with the manager console. */
 (() => {
 'use strict';
@@ -68,7 +68,7 @@ function render(){
   app.innerHTML = `
     <header class="topbar">
       <div class="brand"><div>
-        <div class="brand-word">CJ<span>&rsquo;</span>s Crew Clock</div>
+        <div class="brand-word">CJ<span>&rsquo;</span>s Crew - Clock</div>
         <div class="brand-sub">The Broaster Kings · Staff</div>
       </div></div>
       <div class="row">
@@ -457,7 +457,7 @@ function renderMe(){
       We use your location only to confirm you&rsquo;re at a venue when you punch, and to check you&rsquo;re still on site while you&rsquo;re on the clock. No tracking off the clock. Punch photos and GPS points are kept with your time records for payroll and audits.
     </div>
     <button class="btn" style="margin-top:16px" data-act="signout">${ic('out')} Sign out</button>
-    <p class="small faint" style="text-align:center;margin-top:12px">CJ&rsquo;s Crew Clock · prototype v0.5</p>`;
+    <p class="small faint" style="text-align:center;margin-top:12px">CJ&rsquo;s Crew - Clock · prototype v0.5</p>`;
 }
 
 
@@ -469,7 +469,7 @@ function renderGuide(fromAuth=false){
   return `
     <div style="padding:6px 2px 12px">
       <span class="proto-tag">Prototype guide</span>
-      <div class="title" style="font-size:20px;margin-top:10px">How CJ&rsquo;s Crew Clock works</div>
+      <div class="title" style="font-size:20px;margin-top:10px">How CJ&rsquo;s Crew - Clock works</div>
       <p class="small muted" style="margin-top:4px">A phone time clock for CJ&rsquo;s Wings crew: punch in and out by location at the restaurant, stadium stands, pop-ups and the food truck.</p>
     </div>
 
@@ -544,7 +544,7 @@ function renderGuide(fromAuth=false){
         <li><b>Not built yet:</b> a production database and real accounts (the demo server is shared sample data), payroll export (e.g. Gusto, ADP, Toast), POS tip sync, push notifications (the wall board covers break alerts for now), and a native iPhone/Android wrapper for background location.</li>
       </ul>`)}
 
-    <p class="small faint" style="margin:14px 2px 0">CJ&rsquo;s Crew Clock · prototype v0.4</p>
+    <p class="small faint" style="margin:14px 2px 0">CJ&rsquo;s Crew - Clock · prototype v0.4</p>
     ${fromAuth ? `<button class="btn primary" style="margin-top:14px" data-act="back-pick">Start the demo</button>` : ''}`;
 }
 
