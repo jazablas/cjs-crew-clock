@@ -54,6 +54,8 @@ jobs:
             fi
           fi
           [ "$HOST" = "$FTP_SERVER" ] && echo "::warning::Couldn't match the certificate; set FTP_SERVER to the server name shown in cPanel (for example gator1234.hostgator.com)."
+          echo "FTP server address: $(getent ahostsv4 "$HOST" | awk '{print $1; exit}') / website address: $(getent ahostsv4 cjwtbk.com | awk '{print $1; exit}')"
+          echo "Username looks like: $(echo "$FTP_USERNAME" | sed -E 's/^(.).*@/\1***@/') (length ${#FTP_USERNAME}), password length ${#FTP_PASSWORD}"
           lftp -u "$FTP_USERNAME","$FTP_PASSWORD" "$HOST" <<EOF
           set ftp:ssl-force true
           set ftp:ssl-protect-data true
