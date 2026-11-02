@@ -134,6 +134,7 @@ const DEFAULT_SETTINGS = {
     {kind:'rest', label:'10-min break', min:10, at:2, minShift:3.5},
     {kind:'meal', label:'Lunch break', min:30, at:4.5, minShift:5},
     {kind:'rest', label:'15-min break', min:15, at:6.5, minShift:6},
+    {kind:'meal', label:'2nd meal break', min:30, at:9.5, minShift:10},
   ],
   breakWarnMin:10, breakLateMin:15,
   allowNfc:true, allowKiosk:true, nfcSelfie:false, nfcPairing:true, crewAppUrl:'',
@@ -407,76 +408,274 @@ function seedExtras(d){
   ];
   return X;
 }
-const EXTRA_KEYS = ['availability','needs','published','sales','tipPools','channels','messages','reads','checklists','checkRuns','docTypes','docs','courses','training','feedback','suggestions','jobs','applicants','advances','integrations','outbox'];
+const EXTRA_KEYS = ['availability','needs','published','sales','tipPools','channels','messages','reads','checklists','checkRuns','docTypes','docs','courses','training','feedback','suggestions','jobs','applicants','advances','integrations','outbox','consents'];
+
+/* ---------- Starting data for the live app: real venues and templates, no sample people ---------- */
+function seedProduction(ownerName){
+  const s = seed();
+  const keep = ['pico','dhsp','sofi','truck'];
+  const venues = s.venues.filter(v => keep.includes(v.id)).map(v => ({...v,
+    note: v.id==='sofi' ? 'Confirm the staging location before the first event.' : v.id==='truck' ? 'Geofence follows the truck\u2019s GPS, wherever it parks.' : v.note,
+    addr: v.id==='truck' ? 'Live GPS' : v.addr}));
+  const x = s;
+  const settings = {...DEFAULT_SETTINGS, managerName: ownerName || 'Owner', requireSelfie:false, ewaEnabled:false, smsReminders:false, payAnchor: s.settings.payAnchor};
+  delete settings.managerPin;
+  return {
+    v:2, seededAt:Date.now(), seedDay:startOfDay(Date.now()), offsetMs:0, seq:1000, live:true,
+    settings, employees:[], venues, shifts:[], openShifts:[], punches:[], requests:[], nfcTags:[], devices:{},
+    announcements:[], approvals:{}, closedPeriods:{}, log:[{t:Date.now(), who:ownerName||'Owner', text:'Set up CJ\u2019s Crew - Clock'}],
+    availability:{}, needs:[], published:{}, sales:{}, tipPools:[],
+    channels:(x.channels||[]).filter(c => !c.dm).map(c => ({...c, members: c.members ? [] : c.members})),
+    messages:[], reads:{}, checklists:x.checklists||[], checkRuns:[], docTypes:x.docTypes||[], docs:{},
+    courses:x.courses||[], training:{}, feedback:[], suggestions:[],
+    jobs:(x.jobs||[]).map(j => ({...j, t:Date.now()})), applicants:[], advances:[],
+    integrations:{square:{on:false}, clover:{on:false}, toast:{on:false}, gusto:{on:false}, adp:{on:false}, quickbooks:{on:false}},
+    outbox:[], consents:{},
+  };
+}
 
 /* ---------- Load / save / sync ----------
-   Data lives on a small sync server so every phone and the manager console share it.
-   If the server can't be reached the app keeps working in memory on this device. */
-const LOCAL = new Set(['localhost','127.0.0.1','[::1]']);
-const RAW_API = window.__API_BASE__ || '';
-const API = (RAW_API.startsWith('__PORT_') ? (LOCAL.has(location.hostname) ? 'http://localhost:8000' : '') : RAW_API).replace(/\/$/, '');
-let rev = -1, saving = 0, online = false, dirty = false;
-const subs = [];
+   PROD (window.__CC__ set): data lives on the secure server. Each person signs in with
+   phone + 6-digit PIN and the server only sends what that person may see, and only
+   accepts the changes they're allowed to make.
+   LOCAL_MODE: demo copy kept in this browser only. */
+const CFG = window.__CC__ || null;
+const PROD = !!(CFG && CFG.api);
+const API = PROD ? CFG.api.replace(/\/$/, '') : '';
+const ROLE = window.__CC_ROLE__ || 'crew';
+let rev = -1, saving = 0, online = false, dirty = false, authed = false;
+let lastServer = null;      // last doc the server sent us (what our local edits are based on)
+const subs = [], authSubs = [];
+const ls = { get(k){ try { return window['local'+'Storage'].getItem(k); } catch(e){ return null; } },
+  set(k,v){ try { window['local'+'Storage'].setItem(k,v); } catch(e){} },
+  del(k){ try { window['local'+'Storage'].removeItem(k); } catch(e){} } };
+const TOKEN_KEY = 'cjcc-token-' + ROLE;
+let token = PROD ? ls.get(TOKEN_KEY) : null, act = null, actUntil = 0, session = null;
+const clone = x => x == null ? x : JSON.parse(JSON.stringify(x));
+const jeq = (a,b) => JSON.stringify(a) === JSON.stringify(b);
+
+function emptyFor(k){ return ['availability','published','sales','reads','docs','training','integrations','consents'].includes(k) ? {} : []; }
 function normalize(d){
   if (!d || d.v !== 2) return null;
   d.settings = {...DEFAULT_SETTINGS, ...d.settings}; d.nfcTags ||= []; d.devices ||= {};
-  if (EXTRA_KEYS.some(k => !(k in d))){ const x = seedExtras(d); EXTRA_KEYS.forEach(k => { if (!(k in d)) d[k] = x[k]; }); }
+  ['employees','venues','shifts','openShifts','punches','requests','announcements','log'].forEach(k => { if (!Array.isArray(d[k])) d[k] = []; });
+  d.approvals ||= {}; d.closedPeriods ||= {};
+  if (PROD){ EXTRA_KEYS.forEach(k => { if (!(k in d)) d[k] = emptyFor(k); }); d.offsetMs = 0; return d; }
+  if (EXTRA_KEYS.some(k => !(k in d))){ const x = seedExtras(d); EXTRA_KEYS.forEach(k => { if (!(k in d)) d[k] = x[k] ?? emptyFor(k); }); }
   if (d.employees && !d.employees.some(e => 'minor' in e)){ const a = d.employees.find(e => e.id==='E-1124'); if (a){ a.minor = true; a.birth = '2009-03-14'; } }
   return d;
 }
-async function push(){
-  if (!API) return;
-  saving++; dirty = false;
-  try {
-    const r = await fetch(API + '/api/db', {method:'PUT', headers:{'Content-Type':'application/json'}, body:JSON.stringify({db})});
-    if (r.ok){ const j = await r.json(); rev = Math.max(rev, j.rev); online = true; }
-  } catch(e){ online = false; dirty = true; }
-  finally { saving--; }
+
+/* Same change model the server uses, so edits made while a save is in flight can be replayed. */
+const MAPS = new Set(['settings','devices','approvals','closedPeriods','availability','published','sales','reads','docs','training','integrations','consents']);
+const isObj = x => !!x && typeof x === 'object' && !Array.isArray(x);
+const idArray = a => Array.isArray(a) && a.every(x => isObj(x) && 'id' in x);
+function diffDocs(base, inc){
+  const out = [];
+  for (const k of new Set([...Object.keys(base||{}), ...Object.keys(inc||{})])){
+    const b = base?.[k], n = inc?.[k];
+    if (jeq(b,n) || n === undefined) continue;
+    if (k === 'log'){ const seen = new Set((b||[]).map(x => JSON.stringify(x))); const adds = (n||[]).filter(x => !seen.has(JSON.stringify(x))); if (adds.length) out.push({k, kind:'log', adds}); continue; }
+    if ((b === undefined || idArray(b)) && idArray(n)){
+      const bm = new Map((b||[]).map(x => [x.id,x])), nm = new Map(n.map(x => [x.id,x]));
+      for (const i of new Set([...bm.keys(), ...nm.keys()])) if (!jeq(bm.get(i), nm.get(i))) out.push({k, kind:'rec', id:i, after:nm.get(i)});
+      continue;
+    }
+    if (MAPS.has(k) && (isObj(b) || b === undefined) && isObj(n)){
+      for (const key of new Set([...Object.keys(b||{}), ...Object.keys(n)])) if (!jeq(b?.[key], n[key])) out.push({k, kind:'key', key, after:n[key]});
+      continue;
+    }
+    out.push({k, kind:'val', after:n});
+  }
+  return out;
 }
-/* Static-host mode (public GitHub copy): no sync server, so keep data in this browser and sync open tabs. */
-const LOCAL_MODE = !API && !!window.__LOCAL_MODE__;
-const LS_KEY = 'cjcc-demo-db';
-const ls = { get(k){ try { return window['local'+'Storage'].getItem(k); } catch(e){ return null; } },
-  set(k,v){ try { window['local'+'Storage'].setItem(k,v); } catch(e){} } };
-function save(){ if (LOCAL_MODE){ ls.set(LS_KEY, JSON.stringify(db)); online = true; return; } push(); }
-function apply(d){ const n = normalize(d); if (!n) return; const prev = db; db = n; subs.forEach(fn => { try { fn(prev, db); } catch(e){ console.warn(e); } }); }
-async function pull(){
-  if (!API || saving) return;
+function applyChange(cur, c){
+  if (c.kind === 'log'){ cur.log = [...c.adds, ...(cur.log||[])].slice(0,400); return; }
+  if (c.kind === 'val'){ cur[c.k] = c.after; return; }
+  if (c.kind === 'key'){ cur[c.k] = isObj(cur[c.k]) ? cur[c.k] : {}; if (c.after === undefined) delete cur[c.k][c.key]; else cur[c.k][c.key] = c.after; return; }
+  const arr = Array.isArray(cur[c.k]) ? cur[c.k] : (cur[c.k] = []);
+  const i = arr.findIndex(x => x.id === c.id);
+  if (c.after === undefined){ if (i >= 0) arr.splice(i,1); return; }
+  if (i >= 0) arr[i] = c.after; else if (c.k === 'outbox') arr.unshift(c.after); else arr.push(c.after);
+}
+
+/* ---------- Talking to the server ---------- */
+function headers(extra){
+  const h = {...(extra||{})};
+  if (token) h['x-cc-token'] = token;
+  if (act && Date.now() < actUntil) h['x-cc-act'] = act;
+  return h;
+}
+async function call(path, opts = {}){
+  const o = {method: opts.method || 'GET', headers: headers(opts.json !== undefined ? {'Content-Type':'application/json'} : {}), cache:'no-store'};
+  if (opts.json !== undefined) o.body = JSON.stringify(opts.json);
+  if (opts.form) o.body = opts.form;
+  let r;
+  try { r = await fetch(API + path, o); online = true; }
+  catch(e){ online = false; return {ok:false, status:0, error:'offline'}; }
+  let j = {}; try { j = await r.json(); } catch(e){}
+  if (r.status === 401 && token && !opts.noSignout && (j.error === 'signed_out' || j.error === 'expired')) signedOut();
+  return {ok:r.ok, status:r.status, ...j};
+}
+function emitAuth(){ authSubs.forEach(fn => { try { fn(session); } catch(e){ console.warn(e); } }); }
+function signedOut(){
+  token = null; ls.del(TOKEN_KEY); session = null; authed = false; rev = -1; lastServer = null;
+  const prev = db; db = blankDoc(); subs.forEach(fn => { try { fn(prev, db); } catch(e){} }); emitAuth();
+}
+function takeServer(r, keepLocal){
+  // r = {rev, db}. Replay anything we changed locally after `sent` on top of the server copy.
+  const server = normalize(clone(r.db)); if (!server) return;
+  let next = clone(server);
+  const pending = keepLocal ? diffDocs(keepLocal, db) : [];
+  pending.forEach(c => applyChange(next, c));
+  rev = r.rev; lastServer = server;
+  const prev = db; db = next; if (pending.length) dirty = true;
+  subs.forEach(fn => { try { fn(prev, db); } catch(e){ console.warn(e); } });
+}
+let pushTimer = null;
+function save(){
+  if (LOCAL_MODE){ ls.set(LS_KEY, JSON.stringify(db)); online = true; return; }
+  if (!PROD || !authed) return;
+  dirty = true; clearTimeout(pushTimer); pushTimer = setTimeout(push, 120);
+}
+async function push(){
+  if (!PROD || !authed || saving) return;
+  saving++; dirty = false;
+  const sent = clone(db);
   try {
-    const r = await fetch(API + '/api/db?since=' + rev, {cache:'no-store'});
-    if (!r.ok) return; const j = await r.json(); online = true;
-    if (saving) return;
-    if (dirty){ push(); return; }
-    if (j.rev !== rev){ rev = j.rev; if (j.db) apply(j.db); }
+    const r = await call('/db', {method:'PUT', json:{db:sent, base:rev}});
+    if (r.ok){ takeServer(r, sent); if (r.dropped) CC.onDropped?.(r.dropped); }
+    else if (r.status === 409 && r.error === 'stale'){ await pullNow(true); CC.onStale?.(); }
+    else if (r.status !== 401) dirty = true;
+  } finally { saving--; }
+  if (dirty && authed) setTimeout(push, 400);
+}
+async function pullNow(force){
+  if (!PROD || !authed || saving) return;
+  if (dirty && !force){ push(); return; }
+  const r = await call('/db?since=' + (force ? -1 : rev));
+  if (!r.ok || saving) return;
+  if (r.db && (force || r.rev !== rev)) takeServer(r, force ? null : null);
+  else rev = r.rev;
+}
+async function pollRev(){
+  if (!PROD || !authed || document.hidden) return;
+  if (dirty){ push(); return; }
+  try {
+    const r = await fetch(CFG.rest + '/rpc/doc_rev', {method:'POST', headers:{apikey:CFG.key, 'Content-Type':'application/json'}, body:'{}', cache:'no-store'});
+    if (!r.ok) return; online = true;
+    const n = await r.json();
+    if (n !== rev) pullNow();
   } catch(e){ online = false; }
 }
-db = seed();
-let deviceKey = null;
-async function fetchDevice(){
-  if (!API){
-    if (LOCAL_MODE){ deviceKey = ls.get('cjcc-device'); if (!deviceKey){ deviceKey = 'local-' + Math.random().toString(36).slice(2,10); ls.set('cjcc-device', deviceKey); } return; }
-    deviceKey = 'local-' + Math.random().toString(36).slice(2,10); return; }
-  try { const r = await fetch(API + '/api/me', {cache:'no-store'}); if (r.ok) deviceKey = (await r.json()).device; } catch(e){}
-  if (!deviceKey) deviceKey = 'tmp-' + Math.random().toString(36).slice(2,10);
+async function loadSession(){
+  if (!token) return null;
+  const r = await call('/session');
+  if (!r.ok) { if (r.status === 401) signedOut(); return null; }
+  session = r.session || r; authed = true;
+  const d = await call('/db');
+  if (d.ok && d.db) takeServer(d, null);
+  emitAuth();
+  return session;
 }
+function setToken(t){ token = t; if (t) ls.set(TOKEN_KEY, t); else ls.del(TOKEN_KEY); }
+const auth = {
+  get session(){ return session; }, get signedIn(){ return authed; }, get role(){ return ROLE; },
+  onChange(fn){ authSubs.push(fn); },
+  async status(){ const r = await call('/status', {noSignout:true}); return r; },
+  async login(phone, pin, remember, as){
+    const r = await call('/login', {method:'POST', json:{phone, pin, as: as || (ROLE === 'manager' ? 'manager' : 'crew'), remember: !!remember}, noSignout:true});
+    if (!r.ok) return r;
+    setToken(r.token); await loadSession(); return {ok:true, session};
+  },
+  async setup(code, name, phone, pin){
+    const r = await call('/setup', {method:'POST', json:{code, name, phone, pin, doc: seedProduction(name)}, noSignout:true});
+    if (!r.ok) return r;
+    setToken(r.token); await loadSession(); return {ok:true, session};
+  },
+  async logout(){ if (token) await call('/logout', {method:'POST', json:{}, noSignout:true}); signedOut(); },
+  async changePin(oldPin, newPin){ return call('/me/pin', {method:'POST', json:{current:oldPin, pin:newPin}}); },
+  // Tablet board: a manager signs in once, the tablet gets its own long-lived board key.
+  async pairBoard(phone, pin){
+    const m = await call('/login', {method:'POST', json:{phone, pin, as:'manager', remember:false}, noSignout:true});
+    if (!m.ok) return m;
+    const prevTok = token; token = m.token;
+    const p = await call('/board/pair', {method:'POST', json:{label: 'Tablet ' + new Date().toLocaleDateString()}});
+    await call('/logout', {method:'POST', json:{}, noSignout:true});
+    token = prevTok;
+    if (!p.ok) return p;
+    setToken(p.token); await loadSession(); return {ok:true};
+  },
+  // Check a manager's phone + PIN without changing who is signed in on this device.
+  async verifyManager(phone, pin){
+    const prevTok = token;
+    const m = await call('/login', {method:'POST', json:{phone, pin, as:'manager', remember:false}, noSignout:true});
+    if (!m.ok) return m;
+    token = m.token; await call('/logout', {method:'POST', json:{}, noSignout:true}); token = prevTok;
+    return {ok:true};
+  },
+  // Kiosk: crew member types their PIN on the tablet; the server returns a 3-minute key for that person.
+  async kiosk(pin){
+    const r = await call('/kiosk', {method:'POST', json:{pin}});
+    if (!r.ok) return r;
+    act = r.token; actUntil = Date.now() + 170*1000; return {ok:true, emp:r.emp};
+  },
+  async kioskDone(){ if (dirty) await push(); act = null; actUntil = 0; },
+};
+const files = {
+  async list(ownerType, ownerId){ const q = new URLSearchParams({owner_type:ownerType, owner_id:ownerId||''}); return call('/docs?' + q); },
+  async upload(file, ownerType, ownerId, kind, label){
+    const f = new FormData(); f.append('file', file); f.append('owner_type', ownerType); f.append('owner_id', ownerId||''); f.append('kind', kind||'other'); f.append('label', label||file.name);
+    return call('/docs', {method:'POST', form:f});
+  },
+  async open(docId, download){
+    const r = await call('/docs/url?id=' + encodeURIComponent(docId) + (download ? '&download=1' : ''));
+    if (r.ok && r.url) window.open(r.url, '_blank', 'noopener');
+    return r;
+  },
+  async remove(docId){ return call('/docs?id=' + encodeURIComponent(docId), {method:'DELETE'}); },
+};
+const admin = {
+  accounts: () => call('/admin/accounts'),
+  saveAccount: (a) => call('/admin/account', {method:'POST', json:a}),
+  unlock: (id) => call('/admin/unlock', {method:'POST', json:{id}}),
+  punchHistory: (id) => call('/admin/punch-history?id=' + encodeURIComponent(id)),
+  audit: () => call('/admin/audit'),
+  async backup(){
+    const r = await call('/admin/backup'); if (!r.ok) return r;
+    const blob = new Blob([JSON.stringify(r, null, 1)], {type:'application/json'});
+    const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'cjs-crew-clock-backup-' + toDateInput(Date.now()) + '.json';
+    document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 1000);
+    return {ok:true};
+  },
+};
+
+/* Static-host demo mode: no server, keep data in this browser and sync open tabs. */
+const LOCAL_MODE = !PROD && !!window.__LOCAL_MODE__;
+const LS_KEY = 'cjcc-demo-db';
+function apply(d){ const n = normalize(d); if (!n) return; const prev = db; db = n; subs.forEach(fn => { try { fn(prev, db); } catch(e){ console.warn(e); } }); }
+function blankDoc(){ return normalize(seedProduction('Owner')); }
+db = PROD ? blankDoc() : seed();
+let deviceKey = ls.get('cjcc-device');
+if (!deviceKey){ deviceKey = 'dev-' + Math.random().toString(36).slice(2,10) + Date.now().toString(36).slice(-4); ls.set('cjcc-device', deviceKey); }
 const ready = (async () => {
-  await fetchDevice();
   if (LOCAL_MODE){
     online = true;
     try { const n = normalize(JSON.parse(ls.get(LS_KEY) || 'null')); if (n) db = n; else save(); } catch(e){ save(); }
     window.addEventListener('storage', ev => { if (ev.key === LS_KEY && ev.newValue){ try { apply(JSON.parse(ev.newValue)); } catch(e){} } });
     return;
   }
-  if (!API) return;
-  try {
-    const r = await fetch(API + '/api/db', {cache:'no-store'});
-    if (r.ok){ const j = await r.json(); online = true; rev = j.rev; const n = normalize(j.db); if (n) db = n; else await push(); }
-  } catch(e){ online = false; }
-  setInterval(pull, 1200);
+  if (!PROD) return;
+  if (token) await loadSession();
+  setInterval(pollRev, 4000);
+  setInterval(() => { if (act && Date.now() > actUntil){ act = null; } }, 5000);
+  document.addEventListener('visibilitychange', () => { if (!document.hidden) pollRev(); });
 })();
-function reset(){ db = seed(); save(); }
+function reset(){ if (PROD) return; db = seed(); save(); }
+
 const isOnline = () => online;
-function id(prefix){ db.seq = (db.seq||900) + 1; return `${prefix}-${db.seq}`; }
+function id(prefix){ db.seq = (db.seq||900) + 1; if (!PROD) return `${prefix}-${db.seq}`;
+  const r = Math.random().toString(36).slice(2,6).toUpperCase(); return `${prefix}-${Date.now().toString(36).slice(-5).toUpperCase()}${r}`; }
 function log(who, text){ db.log.unshift({t:now(), who, text}); if (db.log.length > 300) db.log.length = 300; }
 
 /* ---------- Domain helpers ---------- */
@@ -724,11 +923,11 @@ function crewAppBase(){
   return location.href.replace(/[#?].*$/,'').replace(/[^/]*$/, '');
 }
 function tagUrl(tag){ const b = crewAppBase(); return (b.endsWith('.html') ? b : b + 'index.html') + '?tag=' + encodeURIComponent(tag.code); }
-const deviceEmp = () => deviceKey ? db.devices[deviceKey]?.emp || null : null;
+const deviceEmp = () => PROD ? (session && session.role === 'crew' ? session.emp : null) : (deviceKey ? db.devices[deviceKey]?.emp || null : null);
 
 window.CC = {
   KEY, ic, P, VTYPE, LOCS, COLORS, MIN, HR, DAY,
-  get db(){ return db; }, ready, isOnline, hasServer: !!API, save, reset, id, log, subscribe: fn => subs.push(fn),
+  get db(){ return db; }, ready, isOnline, hasServer: !!API, PROD, auth, files, admin, seedProduction, pushNow: () => push(), pull: () => pullNow(true), save, reset, id, log, subscribe: fn => subs.push(fn),
   now, startOfDay, at, fTime, fDate, fDay, fShort, fDur, fHM, fHrs, money, esc, pad, toDateInput, toTimeInput, fromInputs, initialsOf,
   dist, bearing, fDist, venueActive, periodStart, periodLen, empById, venueById, workedMs, liveFor, summary, punchIssues,
   DEFAULT_SETTINGS, breakStatus, nextBreakFor, shiftFor, tagByCode, newTagCode, tagUrl, crewAppBase, deviceEmp, get deviceKey(){ return deviceKey; },

@@ -235,6 +235,37 @@ function renderNews(){
 /* ---------- Me tab: early pay, paperwork, training, notifications, suggestions ---------- */
 function myTodo(){ const e = me(); if (!e) return 0;
   return CC.docTypesFor(e).filter(t => ['missing','expired'].includes(CC.docState(e.id, t.id).state)).length + CC.coursesFor(e).filter(c => c.required && !(D().training?.[e.id]?.[c.id]?.score >= 100)).length; }
+/* ---------- Live app: my documents (stored privately on the server) ---------- */
+let myDocs = null, myDocsBusy = false;
+async function loadMyDocs(){ if (myDocsBusy) return; myDocsBusy = true; const r = await CC.files.list('employee', S.user); myDocsBusy = false; myDocs = r.ok ? r.docs : []; if (!document.getElementById('sheetRoot').innerHTML) A.render(); }
+const fSize = n => n > 1048576 ? (n/1048576).toFixed(1) + ' MB' : Math.max(1, Math.round(n/1024)) + ' KB';
+function myDocsHtml(){
+  if (myDocs === null) setTimeout(loadMyDocs, 0);
+  return `<div class="section-h"><h2>My documents</h2><span class="small faint">Private · only you and managers</span></div>
+  <div class="list">${myDocs === null ? '<div class="li small muted">Loading…</div>' : myDocs.length ? myDocs.map(d => `<button class="li" style="width:100%;text-align:left" data-act="mydoc-open" data-v="${esc(d.id)}"><span class="vt" style="width:36px;height:36px;flex:none">${ic('doc')}</span><span class="grow" style="min-width:0"><span class="title ellipsis" style="font-size:14.5px;display:block">${esc(d.label || d.filename)}</span><span class="meta" style="display:block">${esc(d.filename||'')} · ${fSize(d.size||0)} · ${fDate(new Date(d.created_at).getTime())}</span></span>${ic('chev','faint" style="width:18px;height:18px;flex:none')}</button>`).join('') : '<div class="li small muted">Nothing uploaded yet. Add your ID, food handler card, certificates or signed forms.</div>'}</div>
+  <button class="btn" style="margin-top:10px" data-act="mydoc-add">${ic('plus')} Upload a document</button>`;
+}
+const DOC_KINDS = [['id','Photo ID'],['food_handler','Food handler card'],['w4','W-4'],['i9','I-9 documents'],['direct_deposit','Direct deposit form'],['certificate','Certificate'],['other','Other']];
+function uploadField(id){ return `<label class="field"><span>File (PDF, photo or Word, up to 10 MB)</span><input class="input" type="file" id="${id}" accept=".pdf,.jpg,.jpeg,.png,.heic,.webp,.doc,.docx,application/pdf,image/*"></label>`; }
+async function sendFile(inputId, kind, label){
+  const f = document.getElementById(inputId)?.files?.[0]; if (!f) return {ok:true, none:true};
+  if (f.size > 10*1024*1024) return {ok:false, error:'That file is over 10 MB.'};
+  A.toast('Uploading…');
+  const r = await CC.files.upload(f, 'employee', S.user, kind, label || f.name);
+  if (r.ok){ myDocs = null; }
+  return r;
+}
+XA.acts['mydoc-add'] = () => { A.openSheet(`<h3>Upload a document</h3><p class="muted small">Stored privately. Only you and your managers can open it.</p>
+  <label class="field"><span>What is it?</span><select class="input" id="mdKind">${DOC_KINDS.map(([k,l]) => `<option value="${k}">${l}</option>`).join('')}</select></label>
+  ${uploadField('mdFile')}
+  <div class="btn-grid" style="margin-top:16px"><button class="btn" data-act="close">Cancel</button><button class="btn primary" data-act="mydoc-send">Upload</button></div>`); return false; };
+XA.acts['mydoc-send'] = async (el) => { const k = val('mdKind'), lbl = DOC_KINDS.find(x => x[0]===k)?.[1];
+  if (!document.getElementById('mdFile').files[0]){ A.toast('Choose a file first'); return false; }
+  el.disabled = true; const r = await sendFile('mdFile', k, lbl); el.disabled = false;
+  if (!r.ok){ A.toast(r.error || 'Upload failed. Try again.'); return false; }
+  A.closeSheet(); A.toast('Uploaded'); loadMyDocs(); return false; };
+XA.acts['mydoc-open'] = async (el, v) => { const r = await CC.files.open(v); if (!r.ok) A.toast(r.error || 'Couldn’t open that file'); return false; };
+window.XA_sendFile = sendFile; window.XA_uploadField = uploadField;
 XA.meExtra = () => {
   const e = me(), w = CC.ewaFor(e.id), st = ST();
   const adv = (D().advances||[]).filter(x => x.emp===e.id).sort((a,b)=>b.t-a.t).slice(0,3);
@@ -243,7 +274,8 @@ XA.meExtra = () => {
   const inbox = (D().outbox||[]).filter(o => o.to===e.id).slice(0,5);
   const dState = {done:['Done','ok'], missing:['To do','warn'], expiring:['Expiring','warn'], expired:['Expired','bad']};
   return `
-  ${st.ewaEnabled ? `<div class="section-h"><h2>Early pay</h2><span class="small faint">Pay period so far</span></div>
+  ${CC.PROD ? myDocsHtml() : ''}
+  ${st.ewaEnabled && !CC.PROD ? `<div class="section-h"><h2>Early pay</h2><span class="small faint">Pay period so far</span></div>
     <div class="card"><div class="row between"><div><div class="label">Available now</div><div style="font-family:var(--display);font-weight:800;font-size:34px;line-height:1.1" class="num">${money(w.avail)}</div></div>
       <button class="btn sm primary" style="width:auto" data-act="ewa-open" ${w.avail>=5?'':'disabled'}>${ic('dollar')} Get it now</button></div>
       <div class="meta" style="margin-top:6px">You&rsquo;ve earned ${money(w.earned)} this period. You can take up to ${st.ewaPct}% before payday${st.ewaFee ? `, ${money(st.ewaFee)} fee` : ', no fee'}. It comes out of your next check.</div>
@@ -272,17 +304,21 @@ XA.acts['doc-open'] = (el, v) => { const e = me(), t = CC.docTypesFor(e).find(x=
   if (t.kind==='card') A.openSheet(`<h3>${esc(t.name)}</h3><p class="muted small">California requires a food handler card within 30 days of hire. Keep it current.</p>
     <label class="field"><span>Card number</span><input class="input" id="dcNum" value="${esc(d?.num||'')}" placeholder="e.g. CA-FH-12345"></label>
     <label class="field"><span>Expiration date</span><input class="input" type="date" id="dcExp" value="${esc(d?.exp||'')}"></label>
+    ${CC.PROD ? uploadField('dcFile') : ''}
     <div class="btn-grid" style="margin-top:16px"><button class="btn" data-act="close">Cancel</button><button class="btn primary" data-act="doc-save" data-v="${v}">Save</button></div>`);
   else A.openSheet(`<h3>${esc(t.name)}</h3><p class="muted small">${BODY[v] || 'Read and sign.'}</p>
     ${s.state==='done' ? `<div class="alert ok" style="margin-top:12px">${ic('check')}<div>Signed ${fDate(d.t)}${d.sig?` as <b>${esc(d.sig)}</b>`:''}.</div></div><button class="btn ghost" style="margin-top:12px" data-act="close">Close</button>`
     : `<label class="field"><span>Type your full name to sign</span><input class="input" id="dcSig" placeholder="${esc(e.name)}" autocomplete="name"></label>
+    ${CC.PROD ? uploadField('dcFile') : ''}
     <label class="check"><input type="checkbox" id="dcOk"><span>I&rsquo;ve read this and the information is correct.</span></label>
     <div class="btn-grid" style="margin-top:16px"><button class="btn" data-act="close">Cancel</button><button class="btn primary" data-act="doc-save" data-v="${v}">Sign</button></div>`}`);
   return false; };
-XA.acts['doc-save'] = (el, v) => { const e = me(), t = CC.docTypesFor(e).find(x=>x.id===v), docs = (D().docs ||= {})[e.id] ||= {};
-  if (t.kind==='card'){ const exp = val('dcExp'); if (!exp){ A.toast('Add the expiration date'); return false; } docs[v] = {status:'done', t:now(), num:val('dcNum').trim(), exp}; }
-  else { const sig = val('dcSig').trim(); if (sig.length < 3){ A.toast('Type your full name'); return false; } if (!document.getElementById('dcOk').checked){ A.toast('Check the box to confirm'); return false; } docs[v] = {status:'done', t:now(), sig}; }
-  CC.log(e.name, `Completed ${t.name}`); commit(); A.closeSheet(); A.toast(`${t.name} saved`); };
+XA.acts['doc-save'] = async (el, v) => { const e = me(), t = CC.docTypesFor(e).find(x=>x.id===v), docs = (D().docs ||= {})[e.id] ||= {};
+  let fileId = null;
+  if (CC.PROD && document.getElementById('dcFile')?.files?.[0]){ el.disabled = true; const r = await sendFile('dcFile', v, t.name); el.disabled = false; if (!r.ok){ A.toast(r.error || 'Upload failed. Try again.'); return false; } fileId = r.doc?.id || r.id || null; }
+  if (t.kind==='card'){ const exp = val('dcExp'); if (!exp){ A.toast('Add the expiration date'); return false; } docs[v] = {status:'done', t:now(), num:val('dcNum').trim(), exp, ...(fileId ? {file:fileId} : {})}; }
+  else { const sig = val('dcSig').trim(); if (sig.length < 3){ A.toast('Type your full name'); return false; } if (!document.getElementById('dcOk').checked){ A.toast('Check the box to confirm'); return false; } docs[v] = {status:'done', t:now(), sig, ...(fileId ? {file:fileId} : {})}; }
+  CC.log(e.name, `Completed ${t.name}`); commit(); A.closeSheet(); A.toast(`${t.name} saved`); A.render(); return false; };
 XA.acts['course-open'] = (el, v) => { const c = D().courses.find(x=>x.id===v);
   A.openSheet(`<h3>${esc(c.title)}</h3><p class="muted small">${c.mins} min · then a quick check</p>
     <ol class="gd-steps" style="margin-top:12px">${c.body.map(b=>`<li>${esc(b)}</li>`).join('')}</ol>

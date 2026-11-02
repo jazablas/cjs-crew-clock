@@ -13,8 +13,9 @@ const VENUES_ALL = () => D().venues;
 
 /* ---------- State (UI only; records live in the store) ---------- */
 const S = {
-  user:null, auth:'pick', pickId:null, pin:'', pinErr:false, selfie:null,
-  tab:'clock', loc:'dhsp_gate', realPos:null,
+  user:null, auth: CC.PROD ? 'login' : 'pick', pickId:null, pin:'', pinErr:false, selfie:null,
+  phone:'', remember:true, loginStep:'phone', loginErr:'', busy:false,
+  tab:'clock', loc: CC.PROD ? 'real' : 'dhsp_gate', realPos:null,
   role:null, leftWarned:false, receipt:null,
   demoOpen:false,
   tapPending:null, tapResult:null, tapRemember:true, nfcScan:null,
@@ -60,7 +61,7 @@ const venueById = id => CC.venueById(id);
 
 function render(){
   renderDemo();
-  if (S.user && (!emp() || emp().active === false)) { S.user = null; S.auth = 'pick'; }
+  if (S.user && (!emp() || emp().active === false)) { S.user = null; S.auth = CC.PROD ? 'login' : 'pick'; }
   if (!S.user) { app.innerHTML = renderAuth(); return; }
   if (S.tapResult) { app.innerHTML = renderTapResult(); return; }
   const body = ({clock:renderClock, sheet:renderTimesheet, sched:renderSchedule, me:renderMe, guide:renderGuide, ...XA.tabs}[S.tab] || renderClock)();
@@ -83,8 +84,91 @@ function render(){
     </nav>`;
 }
 
+/* ---------- Live app sign-in: phone + 6-digit PIN ---------- */
+const fmtPhone = s => { const d = String(s||'').replace(/\D/g,'').slice(0,10); return d.length > 6 ? `(${d.slice(0,3)}) ${d.slice(3,6)}-${d.slice(6)}` : d.length > 3 ? `(${d.slice(0,3)}) ${d.slice(3)}` : d; };
+function renderLogin(){
+  if (S.auth === 'consent') return renderConsent();
+  if (S.auth === 'guide') return `<div class="signin" style="padding-top:18px"><button class="link" data-act="back-pick" style="align-self:flex-start;margin-bottom:10px">← Back to sign in</button>${renderGuide(true)}</div>`;
+  const step = S.loginStep || 'phone';
+  if (step === 'phone') return `
+    <div class="signin">
+      ${S.tapPending ? tapBanner() : `<div style="margin:34px 0 8px" class="hero-word">Boss<br>Crew<br><span>Clock</span></div>`}
+      <p class="muted" style="margin-bottom:22px">Sign in with the phone number and 6-digit PIN your manager gave you.</p>
+      <label class="field"><span>Mobile number</span><input class="input num" id="liPhone" type="tel" inputmode="tel" autocomplete="tel" placeholder="(310) 555-0100" value="${esc(fmtPhone(S.phone))}"></label>
+      <label class="check" style="margin-top:6px"><input type="checkbox" data-act="li-remember" ${S.remember?'checked':''}><span><b>Keep me signed in on this phone</b><br><span class="faint small">Then a sticker tap clocks you in right away. Turn off on a shared phone.</span></span></label>
+      ${S.loginErr ? `<div class="alert bad" style="margin-top:12px">${ic('alert')}<div>${esc(S.loginErr)}</div></div>` : ''}
+      <button class="btn primary" style="margin-top:16px" data-act="li-next">Next</button>
+      <button class="link" data-act="open-guide" style="margin-top:16px;align-self:center">How sign-in works</button>
+      <a class="mgr-cta" href="manager.html" style="margin-top:18px">${ic('shield')}<span><b>Manager? Open the manager console</b><small>Schedules, timesheets, crew, hiring and payroll</small></span>${ic('chev')}</a>
+      <a class="mgr-cta" href="apply.html" style="margin-top:10px">${ic('user')}<span><b>Looking for a job?</b><small>Apply to work at CJ&rsquo;s Wings</small></span>${ic('chev')}</a>
+    </div>`;
+  return `
+    <div class="signin" style="align-items:center;text-align:center">
+      <button class="link" data-act="li-back" style="align-self:flex-start">← Change number</button>
+      ${S.tapPending ? `<div style="width:100%;margin-top:8px">${tapBanner()}</div>` : ''}
+      <div class="title" style="margin-top:18px;font-size:20px">${esc(fmtPhone(S.phone))}</div>
+      <div class="muted small">Enter your 6-digit PIN</div>
+      <div class="pin-dots ${S.pinErr?'shake':''}" aria-label="${S.pin.length} of 6 digits entered">${[0,1,2,3,4,5].map(i=>`<i class="${i<S.pin.length?'f':''}"></i>`).join('')}</div>
+      ${S.loginErr ? `<div class="small" style="color:var(--bad);margin:-8px 0 12px;max-width:300px">${esc(S.loginErr)}</div>` : S.busy ? `<div class="small muted" style="margin:-8px 0 12px">Checking…</div>` : ''}
+      <div class="keypad">
+        ${[1,2,3,4,5,6,7,8,9].map(n=>`<button class="key" data-act="key" data-v="${n}">${n}</button>`).join('')}
+        <button class="key fn" data-act="key" data-v="clr">Clear</button>
+        <button class="key" data-act="key" data-v="0">0</button>
+        <button class="key fn" data-act="key" data-v="del">Delete</button>
+      </div>
+      <p class="small faint" style="margin-top:18px;max-width:300px">Forgot your PIN? Ask your manager to reset it. Five wrong tries locks sign-in for 15 minutes.</p>
+    </div>`;
+}
+function renderConsent(){
+  const st = ST();
+  return `
+    <div class="signin">
+      <div class="label" style="margin-top:18px">Before your first punch</div>
+      <div class="title" style="font-size:22px;margin:6px 0 10px">How CJ&rsquo;s Crew - Clock records your time</div>
+      <div class="card small" style="line-height:1.55">
+        <p><b>Your time.</b> Each clock-in, clock-out and break is saved with the time from our server. You can see every punch in your Timesheet, and any change your manager makes is recorded with who made it and why.</p>
+        <p style="margin-top:8px"><b>Your location.</b> The app checks your GPS only at the moment you punch, and while you&rsquo;re on the clock to confirm you&rsquo;re still on site. It does not track you off the clock.</p>
+        ${st.requireSelfie ? `<p style="margin-top:8px"><b>Photo check.</b> A quick selfie may be required at clock-in to stop buddy punching.</p>` : ''}
+        <p style="margin-top:8px"><b>Breaks.</b> You&rsquo;re entitled to a paid 10-minute rest break for every 4 hours worked (or major part of 4), and a 30-minute meal break before the end of your 5th hour. The app reminds you, and the crew board shows your name in red when a break is due.</p>
+        <p style="margin-top:8px"><b>Records.</b> Time and pay records are kept for at least 4 years, as California law requires. Documents you upload are stored privately and only you and managers can open them.</p>
+        <p style="margin-top:8px"><b>Questions or a mistake?</b> Use Request a correction on any punch, or talk to your manager.</p>
+      </div>
+      <label class="check" style="margin-top:14px"><input type="checkbox" id="consentOk"><span>I&rsquo;ve read this.</span></label>
+      <button class="btn primary" style="margin-top:14px" data-act="consent-ok">Continue</button>
+      <button class="link" data-act="signout" style="margin-top:14px;align-self:center">Not you? Sign out</button>
+    </div>`;
+}
+async function doLogin(){
+  S.busy = true; S.loginErr = ''; render();
+  const r = await CC.auth.login(S.phone, S.pin, S.remember, 'crew');
+  S.busy = false; S.pin = '';
+  if (!r.ok){ S.pinErr = true; S.loginErr = r.error === 'offline' ? 'No connection. Check your signal and try again.' : (r.error || 'Couldn’t sign in.'); render(); return; }
+  afterLogin(true);
+}
+function afterLogin(announce){
+  const s = CC.auth.session; if (!s || !s.emp) return;
+  const e = CC.empById(s.emp); if (!e){ S.loginErr = 'Your profile isn’t set up yet. Ask your manager.'; render(); return; }
+  S.pickId = e.id; S.loginStep = 'phone';
+  if (!D().consents?.[e.id]){ S.auth = 'consent'; render(); return; }
+  const needSelfie = S.tapPending ? (ST().requireSelfie && ST().nfcSelfie) : ST().requireSelfie;
+  if (needSelfie && announce){ S.auth = 'selfie'; S.selfie = null; render(); return; }
+  S.selfie = S.selfie || 'skipped'; S.quiet = !announce; finishAuth(); S.quiet = false; render();
+}
+let gpsWatch = null;
+function startGps(){
+  if (!CC.PROD || gpsWatch !== null || !navigator.geolocation) return;
+  S.loc = 'real';
+  gpsWatch = navigator.geolocation.watchPosition(pos => {
+    const first = !S.realPos;
+    S.realPos = {lat:pos.coords.latitude, lng:pos.coords.longitude, acc:pos.coords.accuracy};
+    if (first || !sheetRoot.innerHTML) render();
+  }, err => { if (err.code === 1) toast('Turn on location for this site so you can clock in'); }, {enableHighAccuracy:true, maximumAge:15000, timeout:20000});
+}
+function stopGps(){ if (gpsWatch !== null && navigator.geolocation){ navigator.geolocation.clearWatch(gpsWatch); } gpsWatch = null; S.realPos = null; }
+
 /* Auth */
 function renderAuth(){
+  if (CC.PROD && S.auth !== 'selfie') return renderLogin();
   if (S.auth === 'guide') return `
     <div class="signin" style="padding-top:18px">
       <button class="link" data-act="back-pick" style="align-self:flex-start;margin-bottom:10px">← Back to sign in</button>
@@ -139,7 +223,7 @@ function renderAuth(){
         ${S.selfie && S.selfie!=='live' ? `<button class="btn primary" data-act="auth-done">Continue</button>` :
           S.selfie === 'live' ? `<button class="btn primary" data-act="snap">${ic('cam')} Take photo</button>` :
           `<button class="btn primary" data-act="cam">${ic('cam')} Open camera</button>
-           <button class="btn ghost" data-act="sim-selfie">Simulate photo (demo)</button>`}
+           ${CC.PROD ? `<button class="btn ghost" data-act="sim-selfie">Camera won&rsquo;t open? Continue without photo</button>` : `<button class="btn ghost" data-act="sim-selfie">Simulate photo (demo)</button>`}`}
       </div>
     </div>`;
 }
@@ -457,12 +541,23 @@ function renderMe(){
       We use your location only to confirm you&rsquo;re at a venue when you punch, and to check you&rsquo;re still on site while you&rsquo;re on the clock. No tracking off the clock. Punch photos and GPS points are kept with your time records for payroll and audits.
     </div>
     <button class="btn" style="margin-top:16px" data-act="signout">${ic('out')} Sign out</button>
-    <p class="small faint" style="text-align:center;margin-top:12px">CJ&rsquo;s Crew - Clock · prototype v0.5</p>`;
+    <p class="small faint" style="text-align:center;margin-top:12px">CJ&rsquo;s Crew - Clock · ${CC.PROD ? 'version 1.0' : 'prototype v0.5'}</p>`;
 }
 
 
 /* Guide tab */
 function renderGuide(fromAuth=false){
+  if (CC.PROD){
+    const li = arr => `<ol class="gd-steps">${arr.map(x=>`<li>${x}</li>`).join('')}</ol>`;
+    return `<div style="padding:6px 2px 12px"><div class="title" style="font-size:22px;margin-bottom:10px">How CJ&rsquo;s Crew - Clock works</div>
+      <div class="card small" style="line-height:1.55">
+      <p><b>Signing in</b></p>${li(['Your manager adds you with your mobile number and gives you a 6-digit PIN.','Enter your number, then your PIN. Keep me signed in lets a sticker tap clock you in instantly.','Five wrong PINs locks sign-in for 15 minutes. Ask your manager to reset a forgotten PIN.'])}
+      <p style="margin-top:10px"><b>Clocking in</b></p>${li(['Hold the top of your phone to the CJ&rsquo;s sticker at your venue, or open the app and tap Clock in.','Allow location. Clock in unlocks when you&rsquo;re inside the venue&rsquo;s boundary.','No phone? Use the wall tablet: tap Clock in / out and enter your PIN.'])}
+      <p style="margin-top:10px"><b>Breaks</b></p>${li(['The app reminds you when a 10-minute, 15-minute or meal break is due.','The crew board shows your name in red when a break is due or late.','Tap Start break and End break (or tap the sticker) so your time is right.'])}
+      <p style="margin-top:10px"><b>Mistakes</b></p>${li(['Open the punch in your Timesheet and tap Request a correction, or use Missed punch.','Your manager approves changes. Every change keeps a record of who made it.'])}
+      </div>
+      ${fromAuth ? `<button class="btn primary" style="margin-top:14px" data-act="back-pick">Back to sign in</button>` : ''}</div>`;
+  }
   const sec = (title, body, open=false) => `<details class="gd" ${open?'open':''}><summary>${title}${ic('chev')}</summary><div class="gd-b">${body}</div></details>`;
   const steps = arr => `<ol class="gd-steps">${arr.map(x=>`<li>${x}</li>`).join('')}</ol>`;
   const demoBtn = `<button class="btn sm" data-act="guide-demo" style="margin-top:10px">${ic('sliders')} Open demo controls</button>`;
@@ -544,12 +639,13 @@ function renderGuide(fromAuth=false){
         <li><b>Not built yet:</b> a production database and real accounts (the demo server is shared sample data), payroll export (e.g. Gusto, ADP, Toast), POS tip sync, push notifications (the wall board covers break alerts for now), and a native iPhone/Android wrapper for background location.</li>
       </ul>`)}
 
-    <p class="small faint" style="margin:14px 2px 0">CJ&rsquo;s Crew - Clock · prototype v0.4</p>
+    <p class="small faint" style="margin:14px 2px 0">CJ&rsquo;s Crew - Clock · ${CC.PROD ? 'version 1.0' : 'prototype v0.4'}</p>
     ${fromAuth ? `<button class="btn primary" style="margin-top:14px" data-act="back-pick">Start the demo</button>` : ''}`;
 }
 
 /* Demo panel */
 function renderDemo(){
+  if (CC.PROD){ demo.innerHTML = ''; demo.classList.remove('open'); return; }
   demo.classList.toggle('open', S.demoOpen);
   const g = S.user ? geofence() : null;
   demo.innerHTML = `
@@ -608,7 +704,7 @@ function sheetPunchIn(){
       <div class="split"><span class="muted">Venue</span><span>${esc(g.venue.name)}</span></div>
       <div class="split"><span class="muted">Role · rate</span><span>${r.role} · ${money(r.rate)}/hr</span></div>
       <div class="split"><span class="muted">Location</span><span class="num">${fDist(g.d)} from center · ±${Math.round(g.pos.acc)} m</span></div>
-      <div class="split"><span class="muted">Identity</span><span>PIN + photo</span></div>
+      <div class="split"><span class="muted">Identity</span><span>${CC.PROD ? (D().settings.requireSelfie ? 'Phone sign-in + photo' : 'Phone sign-in') : 'PIN + photo'}</span></div>
     </div>
     ${XA.inReason ? XA.inReason(sh, flags) : ''}
     ${flags.length ? `<div class="alert warn" style="margin-top:12px">${ic('alert')}<div><b>Will be flagged for your manager:</b> ${flags.join(', ')}.</div></div>`:''}
@@ -745,7 +841,7 @@ function startShift(venueId, flags, extra={}){
   const sh = {id:CC.id(`P-${e.id.slice(2)}`), emp:e.id, venue:venueId, role:r.role, rate:r.rate, inT:now(), breaks:[], flags,
     inLoc:{lat:p.lat, lng:p.lng, acc:p.acc, method: extra.exception ? 'Manager exception' : 'GPS geofence'},
     selfie: S.selfie || 'none',
-    tipsCard: Math.round((20 + Math.random()*40)*100)/100, ...extra};
+    tipsCard: CC.PROD ? 0 : Math.round((20 + Math.random()*40)*100)/100, ...extra};
   D().punches.push(sh);
   S.leftWarned = false;
   return sh;
@@ -754,14 +850,15 @@ function addRequest(r){ D().requests.push({id:CC.id('R'), emp:S.user, status:'Pe
 
 function finishAuth(){
   const e = CC.empById(S.pickId);
-  S.user = e.id; S.tab='clock'; S.role=null; S.auth='pick';
-  S.loc = {dhsp:'dhsp_gate', truck:'truck', pico:'pico', carson:'carson'}[e.home] || S.loc;
+  S.user = e.id; S.tab='clock'; S.role=null; S.auth = CC.PROD ? 'login' : 'pick';
+  if (CC.PROD) startGps(); else S.loc = {dhsp:'dhsp_gate', truck:'truck', pico:'pico', carson:'carson'}[e.home] || S.loc;
+  if (S.tapPending && S.tapPending.unresolved){ const code = S.tapPending.code; S.tapPending = null; if (!S.quiet) toast(`Signed in as ${e.name}`); setTimeout(() => handleTap(code), 0); return; }
   if (S.tapPending){
     const tag = S.tapPending; S.tapPending = null;
-    if (S.tapRemember && ST().nfcPairing) linkDevice(e.id);
+    if (!CC.PROD && S.tapRemember && ST().nfcPairing) linkDevice(e.id);
     doTap(tag, e.id); return;
   }
-  toast(`Signed in as ${e.name}`);
+  if (!S.quiet) toast(`Signed in as ${e.name}`);
 }
 
 /* ---------- NFC tap clock-in ----------
@@ -769,7 +866,8 @@ function finishAuth(){
    phones open that link when held to the sticker, with no app needed. Android Chrome can also read
    stickers from inside the app (Scan NFC sticker). A linked phone skips the PIN. */
 function tapBanner(){
-  const t = S.tapPending, v = venueById(t.venue);
+  const t = S.tapPending, v = t.venue ? venueById(t.venue) : null;
+  if (!v) return `<div class="tap-banner">${ic('nfc')}<div><b>Sticker tapped</b><small>Sign in once and you&rsquo;ll be clocked in · ${fTime(now())}</small></div><button class="icon-btn" data-act="tap-cancel" aria-label="Cancel tap">${ic('x')}</button></div>`;
   return `<div class="tap-banner">${ic('nfc')}<div><b>Sticker tapped at ${esc(v.name)}</b><small>${esc(t.label)} · ${fTime(now())}</small></div><button class="icon-btn" data-act="tap-cancel" aria-label="Cancel tap">${ic('x')}</button></div>`;
 }
 function linkDevice(empId){
@@ -780,6 +878,7 @@ function linkDevice(empId){
 function tapMsg(kind, title, sub, extra=''){ S.tapResult = {kind, title, sub, extra, t:now()}; }
 function handleTap(code){
   closeSheet(); stopNfcScan();
+  if (CC.PROD && !CC.auth.signedIn){ S.tapPending = {code, label:'NFC sticker', venue:null, unresolved:true}; S.auth = 'login'; S.user = null; render(); return; }
   const tag = CC.tagByCode(code);
   if (!ST().allowNfc){ S.tapResult = null; toast('NFC clock-in is turned off by your manager'); render(); return; }
   if (!tag || tag.active === false){ if (S.user) { tapMsg('bad', 'Sticker not recognized', 'This NFC sticker isn&rsquo;t active. Ask your manager, or clock in with the button.'); } else toast('That NFC sticker isn’t active. Sign in to clock in.'); render(); return; }
@@ -787,7 +886,7 @@ function handleTap(code){
   if (!venueActive(v)){ if (S.user) tapMsg('bad', `${esc(v.name)} is closed`, 'This venue isn&rsquo;t accepting punches right now.'); else toast(`${v.name} isn’t accepting punches right now`); render(); return; }
   const empId = S.user || CC.deviceEmp();
   const linked = CC.deviceEmp();
-  if (!empId || (linked && CC.empById(linked)?.active === false)){ S.tapPending = tag; S.auth = 'pick'; S.user = null; render(); return; }
+  if (!empId || (linked && CC.empById(linked)?.active === false)){ S.tapPending = tag; S.auth = CC.PROD ? 'login' : 'pick'; S.user = null; render(); return; }
   if (!S.user){
     const e = CC.empById(empId); S.pickId = e.id; S.tapPending = tag;
     if (ST().requireSelfie && ST().nfcSelfie){ S.auth = 'selfie'; S.selfie = null; render(); return; }
@@ -885,13 +984,19 @@ document.addEventListener('click', async ev => {
       tapMsg('ok', v==='meal' ? 'Lunch started' : `${min}-minute break started`, `Back by <b>${fTime(now()+min*MIN)}</b>. Tap the sticker when you&rsquo;re back to end your break.`); break; }
     case 'tap-out': S.tapResult = null; render(); sheetPunchOut(); return;
     case 'link-phone': linkDevice(S.user); commit(); toast('This phone is linked. Just tap a sticker to clock in.'); break;
-    case 'unlink-phone': if (CC.deviceKey) delete D().devices[CC.deviceKey]; commit(); toast('Phone unlinked'); break;
+    case 'unlink-phone': if (CC.PROD){ stopCam(); stopGps(); CC.auth.logout(); Object.assign(S,{user:null, auth:'login', loginStep:'phone', pin:'', selfie:null, tapPending:null, tapResult:null}); toast('Signed out on this phone'); break; } if (CC.deviceKey) delete D().devices[CC.deviceKey]; commit(); toast('Phone unlinked'); break;
     case 'pick': S.pickId = v; S.pin=''; S.pinErr=false; S.auth='pin'; break;
-    case 'back-pick': S.auth='pick'; break;
-    case 'tap-cancel': S.tapPending = null; S.auth='pick'; break;
+    case 'back-pick': S.auth = CC.PROD ? 'login' : 'pick'; break;
+    case 'tap-cancel': S.tapPending = null; S.auth = CC.PROD ? 'login' : 'pick'; break;
+    case 'li-remember': S.remember = el.checked; return;
+    case 'li-next': { const d = (document.getElementById('liPhone')?.value || '').replace(/\D/g,'').replace(/^1(?=\d{10}$)/,''); if (d.length !== 10){ S.loginErr = 'Enter your 10-digit mobile number.'; break; } S.phone = d; S.loginErr = ''; S.pin = ''; S.loginStep = 'pin'; break; }
+    case 'li-back': S.loginStep = 'phone'; S.pin = ''; S.loginErr = ''; break;
+    case 'consent-ok': { if (!document.getElementById('consentOk').checked){ toast('Check the box first'); return; } const s = CC.auth.session; (D().consents ||= {})[s.emp] = {t:now(), v:1}; commit(); S.auth = 'login'; afterLogin(true); return; }
     case 'open-guide': S.auth='guide'; app.scrollTop=0; break;
     case 'guide-demo': S.demoOpen = true; renderDemo(); return;
     case 'key': {
+      if (CC.PROD){ if (S.busy) return; if (v==='clr') S.pin=''; else if (v==='del') S.pin=S.pin.slice(0,-1); else if (S.pin.length<6) S.pin+=v;
+        S.pinErr=false; S.loginErr=''; if (S.pin.length===6){ doLogin(); return; } break; }
       if (v==='clr') S.pin=''; else if (v==='del') S.pin=S.pin.slice(0,-1); else if (S.pin.length<4) S.pin+=v;
       S.pinErr=false;
       if (S.pin.length===4){
@@ -905,10 +1010,10 @@ document.addEventListener('click', async ev => {
         stream = await navigator.mediaDevices.getUserMedia({video:{facingMode:'user'}});
         S.selfie='live'; render();
         const vid = document.getElementById('selfieVid'); if (vid) vid.srcObject = stream;
-      } catch(err){ S.selfie='sim'; toast('Camera unavailable here, so we used a simulated photo'); render(); }
+      } catch(err){ if (CC.PROD){ toast('Camera unavailable. Allow camera access, or continue without a photo.'); render(); return; } S.selfie='sim'; toast('Camera unavailable here, so we used a simulated photo'); render(); }
       return;
     case 'snap': stopCam(); S.selfie='real'; break;
-    case 'sim-selfie': S.selfie='sim'; break;
+    case 'sim-selfie': S.selfie = CC.PROD ? 'skipped-camera' : 'sim'; if (CC.PROD){ finishAuth(); } break;
     case 'auth-done': finishAuth(); break;
     case 'tab': S.tab = v; break;
     case 'role': S.role = v; break;
@@ -959,7 +1064,7 @@ document.addEventListener('click', async ev => {
       if (!d){ toast('Pick a date'); return; }
       addRequest({kind:'Time off', detail:`Off ${CC.fShort(new Date(d+'T12:00').getTime())}${n?` · ${n}`:''}`, payload:{date:d}}); commit(); closeSheet(); toast('Time-off request sent'); break; }
     case 'pickup': if (XA.acts.pickup && XA.acts.pickup(el, v) === false) return; { const o = D().openShifts.find(x=>x.id===v); addRequest({kind:'Open shift', detail:`${venueById(o.venue).name} · ${o.role} · ${fDate(o.startT)} ${fTime(o.startT)}–${fTime(o.endT)}`, ref:o.id}); commit(); toast('Requested. Your manager will confirm.'); break; }
-    case 'signout': stopCam(); Object.assign(S,{user:null, auth:'pick', pin:'', selfie:null, tapPending:null, tapResult:null}); break;
+    case 'signout': stopCam(); if (CC.PROD){ stopGps(); CC.auth.logout(); Object.assign(S,{user:null, auth:'login', loginStep:'phone', pin:'', selfie:null, tapPending:null, tapResult:null}); break; } Object.assign(S,{user:null, auth:'pick', pin:'', selfie:null, tapPending:null, tapResult:null}); break;
     case 'close': closeSheet(); return;
     case 'loc':
       if (v==='real'){
@@ -971,9 +1076,9 @@ document.addEventListener('click', async ev => {
         return;
       }
       S.loc = v; if (window.innerWidth <= 760) S.demoOpen = false; break;
-    case 'ff': D().offsetMs = v==='0' ? 0 : (D().offsetMs||0) + Number(v)*MIN; commit(); toast(v==='0' ? 'Back to real time' : `Jumped ahead ${v>=60?v/60+' hr':v+' min'}`); break;
+    case 'ff': if (CC.PROD) return; D().offsetMs = v==='0' ? 0 : (D().offsetMs||0) + Number(v)*MIN; commit(); toast(v==='0' ? 'Back to real time' : `Jumped ahead ${v>=60?v/60+' hr':v+' min'}`); break;
     default: if (XA.acts[act]){ const r = XA.acts[act](el, v, ev); if (r === false) return; } break;
-    case 'reset': stopCam(); CC.reset(); Object.assign(S,{user:null, auth:'pick', pin:'', selfie:null, loc:'dhsp_gate', demoOpen:false, tapPending:null, tapResult:null}); closeSheet(); toast('Demo data reset'); break;
+    case 'reset': if (CC.PROD) return; stopCam(); CC.reset(); Object.assign(S,{user:null, auth:'pick', pin:'', selfie:null, loc:'dhsp_gate', demoOpen:false, tapPending:null, tapResult:null}); closeSheet(); toast('Demo data reset'); break;
   }
   const sc = document.getElementById('scroll'); const top = sc ? sc.scrollTop : 0;
   render();
@@ -1018,5 +1123,12 @@ CC.subscribe((prev, next) => {
 window.APP = {S, render, openSheet, closeSheet, toast, addRequest, emp, scheduleFor, openShifts, venueById, todaysShift, commit, announcementCards, renderGuide, breakState};
 const TAG_IN = (location.search.match(/[?&]tag=([^&#]+)/) || location.hash.match(/[#&]tag=([^&]+)/) || [])[1];
 if (TAG_IN) { try { history.replaceState(null, '', location.pathname); } catch(e){} }
-CC.ready.then(() => { if (TAG_IN) handleTap(decodeURIComponent(TAG_IN)); else render(); });
+if (CC.PROD){ document.body.classList.add('prod');
+  CC.auth.onChange(s => { if (!s && S.user){ stopGps(); Object.assign(S,{user:null, auth:'login', loginStep:'phone', pin:'', tapResult:null}); closeSheet(); toast('You were signed out. Sign in again.'); render(); } });
+  CC.onStale = () => toast('Someone else changed this at the same time. Showing the latest.');
+  CC.onDropped = n => toast('Some changes weren’t allowed and were skipped.');
+}
+CC.ready.then(() => {
+  if (CC.PROD && CC.auth.session?.role === 'crew'){ afterLogin(false); if (TAG_IN){ if (S.user) handleTap(decodeURIComponent(TAG_IN)); else { const tg = CC.tagByCode(decodeURIComponent(TAG_IN)); if (tg) S.tapPending = tg; render(); } } else render(); return; }
+  if (TAG_IN) handleTap(decodeURIComponent(TAG_IN)); else render(); });
 })();

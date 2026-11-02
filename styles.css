@@ -295,3 +295,7 @@ textarea.input{min-height:84px;resize:vertical}
 .av-r .input{padding:8px;font-size:14px;min-width:0}
 .quiz{border:1px solid var(--line);border-radius:14px;padding:10px 12px;margin-top:12px}
 .quiz legend{font-weight:700;padding:0 6px;font-size:14.5px}
+
+/* Live app: hide prototype-only controls */
+body.prod .demo-fab, body.prod .proto-tag, body.prod .guide-cta, body.prod .demo-panel { display:none !important; }
+body.prod .stage { grid-template-columns: 1fr !important; }

@@ -374,7 +374,7 @@ function pHiring(){
   <div class="cards">${jobs.filter(j => M.jobQ==='all' || j.id===M.jobQ).map(j => `<article class="req"><div class="row between"><div><div class="title" style="font-size:15px">${esc(j.title)}</div><div class="meta">${esc(venue(j.venue).name)} · ${esc(j.type)} · ${money(j.rate)}/hr</div></div>${badge(j.status, j.status==='Open'?'ok':'')}</div><p class="req-d">${esc(j.desc)}</p>
     <div class="row" style="justify-content:flex-end;gap:6px;flex-wrap:wrap"><button class="btn sm" data-act="job-link" data-v="${j.id}">${ic('copy')} Copy apply link</button><a class="btn sm" href="apply.html?job=${j.id}" target="_blank" rel="noopener">${ic('ext')} Preview</a><button class="btn sm" data-act="job-toggle" data-v="${j.id}">${j.status==='Open'?'Close':'Reopen'}</button></div></article>`).join('')}</div>
   <div class="pipe">${STAGES.map(st => `<section class="pipe-col"><div class="label">${st} <b>${apps.filter(a=>a.stage===st).length}</b></div>${apps.filter(a=>a.stage===st).sort((a,b)=>b.t-a.t).map(a => { const j = jobs.find(x=>x.id===a.job); return `
-    <article class="app-card"><div class="title" style="font-size:14px">${esc(a.name)}</div><div class="meta">${esc(j?.title||'')} · applied ${fShort(a.t)}</div>${a.note?`<div class="small" style="margin-top:4px">${esc(a.note)}</div>`:''}<div class="meta">${esc(a.phone)}${a.email?` · ${esc(a.email)}`:''}</div>
+    <article class="app-card"><div class="title" style="font-size:14px">${esc(a.name)}</div><div class="meta">${esc(j?.title||'')} · applied ${fShort(a.t)}</div>${a.note?`<div class="small" style="margin-top:4px">${esc(a.note)}</div>`:''}<div class="meta">${esc(a.phone)}${a.email?` · ${esc(a.email)}`:''}</div>${a.resume ? `<div class="row" style="gap:6px;margin-top:6px"><button class="btn sm" data-act="doc-view" data-v="${esc(a.resume.id)}">${ic('doc')} Resume</button><button class="btn sm" data-act="doc-dl" data-v="${esc(a.resume.id)}">${ic('download')}</button></div>` : ''}
       ${a.interview && a.stage==='Interview' ? `<div class="meta" style="color:var(--info)">Interview ${fDate(a.interview)} ${fTime(a.interview)}</div>` : ''}
       <div class="row" style="gap:6px;margin-top:8px;flex-wrap:wrap">${st==='Applied'?`<button class="btn sm" data-act="app-int" data-v="${a.id}">Interview</button>`:''}${st==='Interview'?`<button class="btn sm" data-act="app-move" data-v="${a.id}" data-s="Offer">Make offer</button>`:''}${st==='Offer'?`<button class="btn sm primary" data-act="app-hire" data-v="${a.id}">Hire</button>`:''}${st!=='Hired'?`<button class="btn sm" data-act="app-move" data-v="${a.id}" data-s="Rejected">Pass</button>`:''}</div>
     </article>`; }).join('') || '<div class="small faint" style="padding:8px">None</div>'}</section>`).join('')}</div>
@@ -392,17 +392,17 @@ EXT.acts['job-save'] = () => { const t = val('jb-t').trim(); if (!t){ toast('Add
 EXT.acts['app-move'] = (el, v) => { const a = D().applicants.find(x=>x.id===v); a.stage = el.dataset.s; commit(`Moved applicant ${a.name} to ${a.stage}`); };
 EXT.acts['app-int'] = (el, v) => { const a = D().applicants.find(x=>x.id===v);
   openModal(`${mHead(`Interview ${esc(a.name)}`)}<div class="fgrid" style="margin-top:6px"><label class="field"><span>Date</span><input class="input" type="date" id="ai-d" value="${toDateInput(now()+DAY)}"></label><label class="field"><span>Time</span><input class="input" type="time" id="ai-t" value="15:00"></label></div>
-  <label class="check"><input type="checkbox" id="ai-sms" checked><span>Text ${esc(a.name.split(' ')[0])} the time (simulated)</span></label>${btns(`<button class="btn sm" data-act="close">Cancel</button>`, `<button class="btn sm primary" data-act="app-int-save" data-v="${v}">${ic('check')} Schedule</button>`)}`); return false; };
+  ${CC.PROD ? `<p class="small faint">Call or text ${esc(a.name.split(' ')[0])} at ${esc(a.phone)} to confirm. Automatic texts aren&rsquo;t connected yet.</p>` : `<label class="check"><input type="checkbox" id="ai-sms" checked><span>Text ${esc(a.name.split(' ')[0])} the time (simulated)</span></label>`}${btns(`<button class="btn sm" data-act="close">Cancel</button>`, `<button class="btn sm primary" data-act="app-int-save" data-v="${v}">${ic('check')} Schedule</button>`)}`); return false; };
 EXT.acts['app-int-save'] = (el, v) => { const a = D().applicants.find(x=>x.id===v); a.interview = fromInputs(val('ai-d'), val('ai-t')); a.stage = 'Interview';
   if (chk('ai-sms')) CC.notify(a.phone, `Hi ${a.name.split(' ')[0]}, this is ${ST().company}. Your interview is ${fDate(a.interview)} at ${fTime(a.interview)}.`, 'SMS', 'hiring');
   closeModal(); commit(`Scheduled interview with ${a.name}`); toast('Interview scheduled'); };
-EXT.acts['app-hire'] = (el, v) => { const a = D().applicants.find(x=>x.id===v), j = D().jobs.find(x=>x.id===a.job); const pin = String(1000 + Math.floor(Math.random()*9000));
+EXT.acts['app-hire'] = (el, v) => { const a = D().applicants.find(x=>x.id===v), j = D().jobs.find(x=>x.id===a.job); const pin = CC.PROD ? String(100000 + crypto.getRandomValues(new Uint32Array(1))[0] % 900000) : String(1000 + Math.floor(Math.random()*9000));
   openModal(`${mHead(`Hire ${esc(a.name)}`, 'Adds them to the crew. They get a welcome text and every onboarding form in the crew app.')}<div class="fgrid" style="margin-top:6px">
   <label class="field"><span>Role</span><input class="input" id="hi-role" value="${esc(j?.title.replace(/\s*\(.*\)/,'')||'Cashier')}"></label><label class="field"><span>Rate ($/hr)</span><input class="input num" id="hi-rate" value="${(j?.rate||20).toFixed(2)}"></label>
-  <label class="field"><span>Home venue</span><select class="input" id="hi-v">${X.venueOpts(j?.venue||'pico')}</select></label><label class="field"><span>Starting PIN</span><input class="input num" id="hi-pin" value="${pin}" maxlength="4"></label></div>
+  <label class="field"><span>Home venue</span><select class="input" id="hi-v">${X.venueOpts(j?.venue||'pico')}</select></label><label class="field"><span>Starting PIN</span><input class="input num" id="hi-pin" value="${pin}" maxlength="${CC.PROD?6:4}"></label>${CC.PROD ? `<label class="field"><span>Mobile number (they sign in with this)</span><input class="input num" id="hi-phone" type="tel" value="${esc(a.phone)}"></label>` : ''}</div>
   <label class="check"><input type="checkbox" id="hi-minor"><span>Under 18 (adds a work permit and minor-hour checks)</span></label>
   ${btns(`<button class="btn sm" data-act="close">Cancel</button>`, `<button class="btn sm primary" data-act="app-hire-save" data-v="${v}">${ic('check')} Hire and start onboarding</button>`)}`); return false; };
-EXT.acts['app-hire-save'] = (el, v) => { const a = D().applicants.find(x=>x.id===v), pin = val('hi-pin').trim();
+EXT.acts['app-hire-save'] = (el, v) => { if (CC.PROD){ hireProd(el, v); return false; } const a = D().applicants.find(x=>x.id===v), pin = val('hi-pin').trim();
   if (!/^\d{4}$/.test(pin) || D().employees.some(e=>e.pin===pin) || pin===ST().managerPin){ toast('Pick a 4-digit PIN nobody else uses'); return false; }
   const nums = D().employees.map(e => parseInt(e.id.slice(2))||0), id = `E-${Math.max(...nums)+7}`;
   const col = CC.COLORS[D().employees.length % CC.COLORS.length];
@@ -443,11 +443,36 @@ function pIntegrations(){
   const card = x => { const s = I[x.id] || {}; return `<article class="req"><div class="row between"><div class="row"><span class="vt sm">${ic(x.kind==='pos'?'store':'dollar')}</span><div><div class="title" style="font-size:15px">${x.name}</div><div class="meta">${x.kind==='pos'?'Register (POS)':'Payroll'}</div></div></div>${s.on?badge('Connected · demo','ok'):badge('Not connected')}</div>
     <p class="req-d">${x.desc}</p>${s.last?`<div class="meta">Last sync ${fDate(s.last)} ${fTime(s.last)}${s.note?` · ${esc(s.note)}`:''}</div>`:''}
     <div class="row" style="justify-content:flex-end;gap:6px;margin-top:10px">${s.on?`<button class="btn sm" data-act="int-sync" data-v="${x.id}">${ic('refresh')} ${x.kind==='pos'?'Sync now':'Send this period'}</button><button class="btn sm" data-act="int-toggle" data-v="${x.id}">Disconnect</button>`:`<button class="btn sm primary" data-act="int-toggle" data-v="${x.id}">${ic('plug')} Connect (demo)</button>`}</div></article>`; };
+  if (CC.PROD) return `<div class="alert info" style="margin-bottom:14px">${ic('info')}<div>Direct connections to registers and payroll aren&rsquo;t set up yet. They need your Square, Toast, Gusto or ADP account and its API access. Until then, use <b>Import POS sales</b> on Labor &amp; sales and <b>Export for payroll</b> on Payroll. Both work today.</div></div>
+  <div class="m-sec-h"><h2>Registers</h2></div><div class="cards">${INTS.filter(x=>x.kind==='pos').map(x => `<article class="req"><div class="row between"><div class="title" style="font-size:15px">${x.name}</div>${badge('Not connected')}</div><p class="req-d">${x.desc}</p></article>`).join('')}</div>
+  <div class="m-sec-h"><h2>Payroll</h2></div><div class="cards">${INTS.filter(x=>x.kind==='pay').map(x => `<article class="req"><div class="row between"><div class="title" style="font-size:15px">${x.name}</div>${badge('Not connected')}</div><p class="req-d">${x.desc}</p></article>`).join('')}</div>`;
   return `<div class="alert info" style="margin-bottom:14px">${ic('info')}<div>In this preview, connections are simulated so you can see the flow. A live connection needs your Square, Toast, Gusto or ADP account and its API keys. Until then, use <b>Import POS sales</b> on Labor &amp; sales and <b>Export for payroll</b> on Payroll.</div></div>
   <div class="m-sec-h"><h2>Registers</h2></div><div class="cards">${INTS.filter(x=>x.kind==='pos').map(card).join('')}</div>
   <div class="m-sec-h"><h2>Payroll</h2></div><div class="cards">${INTS.filter(x=>x.kind==='pay').map(card).join('')}</div>`;
 }
-EXT.acts['int-toggle'] = (el, v) => { const I = D().integrations; I[v] = {...(I[v]||{}), on:!I[v]?.on}; commit(`${I[v].on?'Connected':'Disconnected'} ${INTS.find(x=>x.id===v).name} (demo)`); toast(I[v].on ? 'Connected (demo)' : 'Disconnected'); };
+async function hireProd(el, v){
+  const a = D().applicants.find(x=>x.id===v), pin = val('hi-pin').trim(), phone = val('hi-phone').replace(/\D/g,'').replace(/^1(?=\d{10}$)/,'');
+  if (!/^\d{6}$/.test(pin)){ toast('PIN must be 6 digits'); return; }
+  if (phone.length !== 10){ toast('Add their 10-digit mobile number'); return; }
+  const id = 'E-' + Date.now().toString(36).slice(-4).toUpperCase() + Math.random().toString(36).slice(2,4).toUpperCase();
+  const col = CC.COLORS[D().employees.length % CC.COLORS.length];
+  const fp = `(${phone.slice(0,3)}) ${phone.slice(3,6)}-${phone.slice(6)}`;
+  D().employees.push({id, name:a.name, initials:CC.initialsOf(a.name), color:col, roles:[{role:val('hi-role').trim()||'Cashier', rate:parseFloat(val('hi-rate'))||20}], home:val('hi-v'), phone:fp, active:true, minor:chk('hi-minor'), hiredT:now()});
+  (D().docs ||= {})[id] = {}; a.stage = 'Hired'; a.emp = id;
+  commit(`Hired ${a.name} (${id})`); el.disabled = true;
+  await CC.pushNow();
+  const r = await CC.admin.saveAccount({emp_id:id, name:a.name, phone, pin, is_manager:false, active:true});
+  el.disabled = false;
+  if (!r.ok){ toast(r.error || 'Added to crew, but sign-in didn’t save. Open Crew to set it.'); closeModal(); X.render(); return; }
+  openModal(`${mHead(`${esc(a.name)} is on the crew`, 'Give them these sign-in details. The PIN isn’t shown again.')}
+    <div class="receipt"><div class="split"><span class="muted">Crew app</span><span class="mono small">${esc(location.href.replace(/manager\.html.*$/, ''))}</span></div>
+    <div class="split"><span class="muted">Mobile number</span><span class="num">${esc(fp)}</span></div>
+    <div class="split"><span class="muted">PIN</span><span class="num" style="font-size:22px;letter-spacing:4px"><b>${esc(pin)}</b></span></div></div>
+    <p class="small faint" style="margin-top:10px">Their onboarding forms and training are waiting in the Me tab of the crew app.</p>
+    ${btns('', `<button class="btn sm primary" data-act="close">Done</button>`)}`);
+  X.render();
+}
+EXT.acts['int-toggle'] = (el, v) => { if (CC.PROD){ toast('Live connections need your account with that service. Use Import POS sales and Export for payroll until then.'); return false; } const I = D().integrations; I[v] = {...(I[v]||{}), on:!I[v]?.on}; commit(`${I[v].on?'Connected':'Disconnected'} ${INTS.find(x=>x.id===v).name} (demo)`); toast(I[v].on ? 'Connected (demo)' : 'Disconnected'); };
 EXT.acts['int-sync'] = (el, v) => { const x = INTS.find(i=>i.id===v), I = D().integrations[v];
   if (x.kind==='pos'){ const t0 = startOfDay(now()); let n = 0; venuesOn().forEach(ven => { const a = CC.salesSoFar(ven.id); if (a > 0){ D().sales[CC.salesKey(ven.id, t0)] = a; n++; } }); I.note = `${n} venues updated`; }
   else { const ps = X.curPs(); const ap = Object.keys(D().approvals[ps]||{}).length; I.note = `${ap} approved timesheets sent for ${fShort(ps)} period`; }

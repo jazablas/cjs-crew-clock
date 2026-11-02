@@ -6,7 +6,8 @@ const {ic, MIN, HR, DAY, now, startOfDay, fTime, fDay, fHM, esc, workedMs} = CC;
 const D = () => CC.db, ST = () => CC.db.settings;
 const root = document.getElementById('board'), modalRoot = document.getElementById('modalRoot');
 const qs = new URLSearchParams(location.search);
-const B = { venue: qs.get('venue') || null, started: !!qs.get('venue'), sound: false, pin:'', pinErr:false, alertIds: new Set(), wake:null };
+const lsx = { get(k){ try { return window['local'+'Storage'].getItem(k); } catch(e){ return null; } }, set(k,v){ try { window['local'+'Storage'].setItem(k,v); } catch(e){} } };
+const B = { venue: qs.get('venue') || (CC.PROD ? lsx.get('cjcc-board-venue') : null), started: !!qs.get('venue') || (CC.PROD && lsx.get('cjcc-board-started') === '1'), busy:false, err:'', mpErr:'', sound: false, pin:'', pinErr:false, alertIds: new Set(), wake:null };
 
 const emp = id => CC.empById(id);
 const venue = id => CC.venueById(id);
@@ -67,6 +68,7 @@ function boardNotes(){
 
 /* ---------- Rendering ---------- */
 function render(){
+  if (CC.PROD && !CC.auth.signedIn){ root.innerHTML = renderPair(); return; }
   if (!B.started){ root.innerHTML = renderSetup(); return; }
   const live = liveRows(), sched = todayRows();
   const alerts = live.filter(r => r.bs.alert);
@@ -174,6 +176,36 @@ function schedRow({s, e, k, label}){
   </div>`;
 }
 
+const digits10 = s => String(s||'').replace(/\D/g,'').replace(/^1(?=\d{10}$)/,'');
+function renderPair(){
+  return `<div class="bd-setup">
+    <div class="brand-word" style="font-size:40px">CJ<span>&rsquo;</span>s Crew Board</div>
+    <p class="muted" style="margin-top:6px;max-width:520px">Set up this tablet once. A manager signs in here, and the tablet gets its own key so it can show the crew board and let crew punch with their PIN. The manager isn&rsquo;t left signed in.</p>
+    <div style="max-width:420px;margin-top:20px">
+      <label class="field"><span>Manager mobile number</span><input class="input num" id="bp-phone" type="tel" inputmode="tel" autocomplete="off" placeholder="(310) 555-0100"></label>
+      <label class="field"><span>Manager PIN</span><input class="input num" id="bp-pin" type="password" inputmode="numeric" maxlength="6" autocomplete="off"></label>
+      ${B.err ? `<div class="alert bad" style="margin-top:10px">${ic('alert')}<div>${esc(B.err)}</div></div>` : ''}
+      <button class="btn primary" style="margin-top:14px" data-act="pair" ${B.busy?'disabled':''}>${ic('tablet')} ${B.busy ? 'Setting up…' : 'Set up this tablet'}</button>
+    </div>
+  </div>`;
+}
+async function doPair(){
+  const phone = digits10(document.getElementById('bp-phone').value), pin = document.getElementById('bp-pin').value.trim();
+  if (phone.length !== 10 || !/^\d{6}$/.test(pin)){ B.err = 'Enter a 10-digit mobile number and 6-digit PIN.'; render(); return; }
+  B.busy = true; B.err = ''; render();
+  const r = await CC.auth.pairBoard(phone, pin); B.busy = false;
+  if (!r.ok){ B.err = r.error === 'offline' ? 'No connection. Try again.' : r.error || 'Couldn’t set up this tablet.'; render(); return; }
+  toast('Tablet is set up'); render();
+}
+function mgrModal(){
+  modalRoot.innerHTML = `<div class="scrim m-scrim2" data-act="scrim"><div class="modal bd-pin" role="dialog" aria-modal="true" style="text-align:left">
+    <h3>Manager sign-in</h3><p class="muted small">Change this board&rsquo;s venue or settings.</p>
+    <label class="field"><span>Mobile number</span><input class="input num" id="mv-phone" type="tel" inputmode="tel" autocomplete="off"></label>
+    <label class="field"><span>PIN</span><input class="input num" id="mv-pin" type="password" inputmode="numeric" maxlength="6" autocomplete="off"></label>
+    ${B.mpErr ? `<p class="small" style="color:var(--bad)">${esc(B.mpErr)}</p>` : ''}
+    <div class="row" style="gap:8px;justify-content:flex-end;margin-top:12px"><button class="btn sm" data-act="close">Cancel</button><button class="btn sm primary" data-act="mv-go">Continue</button></div>
+  </div></div>`;
+}
 function renderSetup(){
   const vs = D().venues.filter(v => v.active !== false);
   const base = location.href.replace(/[?#].*$/,'');
@@ -187,6 +219,7 @@ function renderSetup(){
     </div>
     <label class="check" style="max-width:520px;margin-top:18px"><input type="checkbox" id="bdSound" ${B.sound?'checked':''}><span><b>Chime when someone needs a break</b><br><span class="faint small">Plays a short tone each time a new name turns red.</span></span></label>
     <button class="btn primary" style="margin-top:20px;max-width:520px" data-act="start">${ic('tablet')} Start crew board</button>
+    ${CC.PROD ? `<button class="btn ghost" style="margin-top:10px;max-width:520px" data-act="unpair">Remove this tablet&rsquo;s key</button>` : ''}
     <p class="small faint" style="margin-top:14px;max-width:520px">Tip: bookmark <span class="mono">${esc(base)}?venue=${esc(B.venue && B.venue!=='all' ? B.venue : 'pico')}</span> to open straight to a venue. On iPad, use Guided Access to keep the board on screen.</p>
   </div>`;
 }
@@ -203,7 +236,7 @@ function pinModal(){
 /* ---------- Tablet punch (kiosk) ---------- */
 const K = { step:null, pin:'', err:false, emp:null, msg:null, idle:null, fails:0, lockUntil:0 };
 function kOpen(){ K.step='pin'; K.pin=''; K.err=false; K.emp=null; K.msg=null; kRender(); }
-function kClose(){ K.step=null; clearTimeout(K.idle); modalRoot.innerHTML=''; render(); }
+function kClose(){ K.step=null; clearTimeout(K.idle); modalRoot.innerHTML=''; if (CC.PROD) CC.auth.kioskDone(); render(); }
 function kIdle(ms=30000){ clearTimeout(K.idle); K.idle = setTimeout(kClose, ms); }
 const kLive = id => D().punches.find(p => p.emp===id && !p.outT && !p.voided);
 const kShift = id => { const d0 = startOfDay(now()); return D().shifts.filter(s=>s.emp===id && s.startT>=d0 && s.startT<d0+DAY).sort((a,b)=>Math.abs(a.startT-now())-Math.abs(b.startT-now()))[0] || null; };
@@ -215,9 +248,10 @@ function kRender(){
   kIdle(K.step==='done' ? 6000 : 30000);
   let body = '';
   if (K.step==='pin'){
-    body = `<h3>Punch on this tablet</h3><p class="muted small">Enter your 4-digit PIN.</p>
-      <div class="pin-dots ${K.err?'shake':''}">${[0,1,2,3].map(i=>`<i class="${i<K.pin.length?'f':''}"></i>`).join('')}</div>
-      ${K.err ? '<p class="small" style="color:var(--bad);text-align:center;margin:-8px 0 10px">PIN not recognized. Try again.</p>' : ''}
+    const nP = CC.PROD ? 6 : 4;
+    body = `<h3>Punch on this tablet</h3><p class="muted small">Enter your ${nP}-digit PIN.</p>
+      <div class="pin-dots ${K.err?'shake':''}">${(CC.PROD ? [0,1,2,3,4,5] : [0,1,2,3]).map(i=>`<i class="${i<K.pin.length?'f':''}"></i>`).join('')}</div>
+      ${K.err ? `<p class="small" style="color:var(--bad);text-align:center;margin:-8px 0 10px">${esc(K.errMsg || 'PIN not recognized. Try again.')}</p>` : K.busy ? '<p class="small muted" style="text-align:center;margin:-8px 0 10px">Checking…</p>' : ''}
       <div class="keypad">${[1,2,3,4,5,6,7,8,9].map(n=>`<button class="key" data-act="kkey" data-v="${n}">${n}</button>`).join('')}
         <button class="key fn" data-act="kclose">Cancel</button><button class="key" data-act="kkey" data-v="0">0</button><button class="key fn" data-act="kkey" data-v="del">Delete</button></div>`;
   } else if (K.step==='menu'){
@@ -302,12 +336,19 @@ document.addEventListener('click', ev => {
     case 'start':
       B.sound = document.getElementById('bdSound').checked;
       if (B.sound){ try { audioCtx = new (window.AudioContext || window.webkitAudioContext)(); } catch(e){} }
-      B.started = true; B.alertIds = new Set(liveRows().filter(r=>r.bs.alert).map(r=>r.p.id + ':' + r.bs.alert.label));
+      B.started = true; if (CC.PROD){ lsx.set('cjcc-board-started','1'); lsx.set('cjcc-board-venue', B.venue || 'all'); } B.alertIds = new Set(liveRows().filter(r=>r.bs.alert).map(r=>r.p.id + ':' + r.bs.alert.label));
       keepAwake(); render(); return;
     case 'kiosk': if (Date.now() < K.lockUntil){ toast('Too many wrong PINs. Try again in a minute.'); return; } kOpen(); return;
     case 'kscrim': if (ev.target === el) kClose(); return;
     case 'kclose': kClose(); return;
     case 'kkey':
+      if (CC.PROD){ if (K.busy) return; if (v==='del') K.pin = K.pin.slice(0,-1); else if (K.pin.length < 6) K.pin += v; K.err = false;
+        if (K.pin.length === 6){ K.busy = true; kRender(); const pin = K.pin; K.pin = '';
+          CC.auth.kiosk(pin).then(async r => { K.busy = false;
+            if (!r.ok){ K.err = true; K.errMsg = r.error || 'PIN not recognized. Try again.'; kRender(); return; }
+            await CC.pull(); const e = CC.empById(r.emp); if (!e){ K.err = true; K.errMsg = 'Your profile isn’t set up. Ask a manager.'; kRender(); return; }
+            K.emp = e; K.step = 'menu'; kRender(); }); return; }
+        kRender(); return; }
       if (v==='del') K.pin = K.pin.slice(0,-1); else if (K.pin.length < 4) K.pin += v;
       K.err = false;
       if (K.pin.length === 4){ const e = D().employees.find(x => x.pin === K.pin && x.active !== false);
@@ -324,7 +365,12 @@ document.addEventListener('click', ev => {
       Object.assign(p, {outT:now(), tipsCash:tips, attest:v, missed: v==='missed' ? ['Break missed (employee attested)'] : [], outLoc:{lat:0,lng:0,acc:0,method:'Tablet board'}});
       CC.log(K.emp.name, `Clocked out on the tablet board${v==='missed'?' (attested a missed break)':''}`);
       kDone('out', `Clocked out at ${fTime(p.outT)}`, `${fHM(workedMs(p))} worked today. Thanks, ${esc(K.emp.name.split(' ')[0])}.`); return; }
-    case 'settings': B.pin=''; B.pinErr=false; pinModal(); return;
+    case 'settings': if (CC.PROD){ B.mpErr = ''; mgrModal(); return; } B.pin=''; B.pinErr=false; pinModal(); return;
+    case 'pair': doPair(); return;
+    case 'unpair': CC.auth.logout(); lsx.set('cjcc-board-started','0'); render(); return;
+    case 'mv-go': { const ph = digits10(document.getElementById('mv-phone').value), pn = document.getElementById('mv-pin').value.trim();
+      if (ph.length !== 10 || !/^\d{6}$/.test(pn)){ B.mpErr = 'Enter a 10-digit number and 6-digit PIN.'; mgrModal(); return; }
+      CC.auth.verifyManager(ph, pn).then(r => { if (!r.ok){ B.mpErr = r.error || 'That didn’t match.'; mgrModal(); return; } modalRoot.innerHTML = ''; B.started = false; lsx.set('cjcc-board-started','0'); render(); }); return; }
     case 'key':
       if (v==='del') B.pin = B.pin.slice(0,-1); else if (B.pin.length < 4) B.pin += v;
       B.pinErr = false;
@@ -334,6 +380,7 @@ document.addEventListener('click', ev => {
 });
 
 CC.subscribe(() => { if (!modalRoot.innerHTML || !B.started) render(); });
+if (CC.PROD) CC.auth.onChange(() => render());
 document.addEventListener('input', () => { if (K.step) kIdle(); });
 setInterval(() => {
   const t = document.getElementById('bdTime'); if (t) t.textContent = fTime(now());

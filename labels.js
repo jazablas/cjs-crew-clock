@@ -10,6 +10,8 @@ function qrSvg(text){
   catch(e){ return '<div class="lb-noqr">QR unavailable</div>'; }
 }
 function render(){
+  if (CC.PROD){ L.authed = CC.auth.session?.role === 'manager';
+    if (!L.authed){ root.innerHTML = `<div class="lb-lock"><div class="brand-word" style="font-size:30px">CJ<span>&rsquo;</span>s Sticker Labels</div><p class="muted" style="margin-top:6px">Sign in to the manager console on this device first, then come back here.</p><a class="btn primary" style="margin-top:14px;display:inline-flex" href="manager.html#nfc">Open the manager console</a></div>`; return; } }
   if (!L.authed){
     root.innerHTML = `<div class="lb-lock"><div class="brand-word" style="font-size:30px">CJ<span>&rsquo;</span>s Sticker Labels</div>
       <p class="muted" style="margin-top:6px">Enter the manager PIN to print sticker labels.</p>

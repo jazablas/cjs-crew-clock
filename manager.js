@@ -8,14 +8,14 @@ const D = () => CC.db;
 const ST = () => CC.db.settings;
 const emp = id => CC.empById(id);
 const venue = id => CC.venueById(id);
-const MGR = () => ST().managerName || 'Manager';
+const MGR = () => (CC.PROD && CC.auth.session?.name) || ST().managerName || 'Manager';
 function commit(logText){ if (logText) CC.log(MGR(), logText); CC.save(); }
 
 const root = document.getElementById('mroot');
 const modalRoot = document.getElementById('modalRoot');
 
 const M = {
-  authed: false, pin:'', pinErr:false,
+  authed: false, pin:'', pinErr:false, mode:'loading', phone:'', loginErr:'', busy:false,
   page: (location.hash.slice(1) || 'live'),
   ps: null,           // selected pay period start (null = current)
   tsEmp: 'all', tsIssues:false,
@@ -82,13 +82,13 @@ function weekStart(off=0){ const t = startOfDay(now()); const dow = (new Date(t)
 
 /* ---------- Shell ---------- */
 function render(){
-  if (!M.authed){ root.innerHTML = renderLogin(); return; }
+  if (!M.authed){ root.innerHTML = CC.PROD ? renderProdLogin() : renderLogin(); return; }
   if (!PAGES.some(p=>p[0]===M.page)) M.page = 'live';
   M.navOpen && document.body.classList.add('nav-lock'); if (!M.navOpen) document.body.classList.remove('nav-lock');
   const cnt = approvalsCount();
   const pageFn = {live:pLive, approvals:pApprovals, timesheets:pTimesheets, schedule:pSchedule, crew:pCrew, venues:pVenues, payroll:pPayroll, announce:pAnnounce, nfc:pNfc, rules:pRules, activity:pActivity, ...EXT.fns}[M.page];
   const title = PAGES.find(p=>p[0]===M.page)[2];
-  const stale = startOfDay(Date.now()) !== D().seedDay;
+  const stale = !CC.PROD && startOfDay(Date.now()) !== D().seedDay;
   root.innerHTML = `
   <div class="m-shell ${M.navOpen?'nav-open':''}">
     <aside class="m-side" aria-label="Manager sections">
@@ -114,7 +114,7 @@ function render(){
           <div class="small muted num" data-t="now">${fDay(now())} · ${fTime(now())}${D().offsetMs?' <span class="badge warn" style="margin-left:4px">Simulated time</span>':''}</div>
         </div>
         <div class="m-top-r">
-          <div class="m-demo">
+          ${CC.PROD ? '' : `<div class="m-demo">
             <button class="btn sm" data-act="demo-toggle" aria-expanded="${M.demoOpen}">${ic('sliders')} <span class="hide-sm">Demo</span></button>
             ${M.demoOpen ? `<div class="m-pop">
               <div class="label" style="margin-bottom:8px">Simulated clock</div>
@@ -128,7 +128,7 @@ function render(){
               <button class="chip-btn" data-act="reset">Reset demo data</button>
               <p class="small faint" style="margin-top:10px">Shared live with the crew app on any phone or tab. Changes sync within a couple of seconds.</p>
             </div>` : ''}
-          </div>
+          </div>`}
           <div class="m-me">${ic('shield')}<span class="hide-sm">${esc(MGR())}</span></div>
         </div>
       </header>
@@ -406,16 +406,16 @@ function pCrew(){
     <button class="btn sm primary" data-act="emp-new">${ic('plus')} Add crew member</button>
   </div>
   <div class="tbl-wrap"><table class="tbl">
-    <thead><tr><th>Name</th><th>Roles · rates</th><th>Home venue</th><th>PIN</th><th class="r">Hours this period</th><th>Status</th><th class="r"></th></tr></thead>
+    <thead><tr><th>Name</th><th>Roles · rates</th><th>Home venue</th><th>${CC.PROD ? 'Sign-in' : 'PIN'}</th><th class="r">Hours this period</th><th>Status</th><th class="r"></th></tr></thead>
     <tbody>${list.map(e => { const s = CC.summary(e.id, ps); const live = CC.liveFor(e.id); return `<tr class="${e.active===false?'dim':''}">
       <td><div class="row">${avatar(e)}<div><div class="title" style="font-size:14px">${esc(e.name)}</div><div class="meta">${esc(e.id)}${e.phone?` · ${esc(e.phone)}`:''}</div></div></div></td>
       <td>${e.roles.map(r=>`<div class="small">${esc(r.role)} <span class="num muted">${money(r.rate)}</span></div>`).join('')}</td>
       <td class="small">${esc(venue(e.home).name)}</td>
-      <td class="num mono">${'•'.repeat(e.pin.length)}</td>
+      ${signinCell(e)}
       <td class="r num">${fHrs(s.hours)}</td>
       <td>${e.active===false ? badge('Inactive') : live ? badge('On the clock','ok') : badge('Active','info')}</td>
       <td class="r"><button class="btn sm" data-act="emp-edit" data-v="${e.id}">${ic('edit')} Edit</button></td>
-    </tr>`; }).join('') || `<tr><td colspan="7" class="muted small">No crew match “${esc(M.crewQ)}”.</td></tr>`}</tbody></table></div>`;
+    </tr>`; }).join('') || `<tr><td colspan="7" class="muted small">${M.crewQ ? `No crew match “${esc(M.crewQ)}”.` : 'No crew yet. Tap Add crew member to add your first person.'}</td></tr>`}</tbody></table></div>`;
 }
 
 /* ---------- Venues ---------- */
@@ -604,8 +604,9 @@ function pRules(){
         <label class="field"><span>Period length</span><select class="input" id="st-periodDays"><option value="7" ${s.periodDays==7?'selected':''}>Weekly</option><option value="14" ${s.periodDays==14?'selected':''}>Every 2 weeks</option></select></label>
         ${num('paydayLag','Payday (days after period ends)')}
         <label class="field"><span>Manager name</span><input class="input" id="st-managerName" value="${esc(s.managerName)}"></label>
-        <label class="field"><span>Manager PIN (4 digits)</span><input class="input num" id="st-managerPin" inputmode="numeric" maxlength="4" value="${esc(s.managerPin)}"></label>
+        ${CC.PROD ? '' : `<label class="field"><span>Manager PIN (4 digits)</span><input class="input num" id="st-managerPin" inputmode="numeric" maxlength="4" value="${esc(s.managerPin)}"></label>`}
       </div></section>
+    ${accountCard()}
   </div>
   <div class="row" style="justify-content:flex-end;gap:8px;margin-top:16px;position:sticky;bottom:0;padding:12px 0;background:linear-gradient(transparent,var(--bg) 30%)">
     <button class="btn sm" data-act="rules-default">Restore defaults</button>
@@ -777,8 +778,10 @@ function modalEmp(id){
     ${mHead(e ? 'Edit crew member' : 'Add crew member', e ? esc(e.id) : 'They can sign in to the crew app right away.')}
     <div class="fgrid" style="margin-top:6px">
       <label class="field"><span>Full name</span><input class="input" id="em-name" value="${esc(e?.name||'')}" placeholder="e.g. Tasha Moore"></label>
-      <label class="field"><span>Clock PIN (4 digits)</span><input class="input num" id="em-pin" inputmode="numeric" maxlength="4" value="${esc(e?.pin||String(Math.floor(1000+Math.random()*9000)))}"></label>
-      <label class="field"><span>Phone</span><input class="input" id="em-phone" value="${esc(e?.phone||'')}" placeholder="(310) 555-0100"></label>
+      ${CC.PROD ? `<label class="field"><span>Mobile number (they sign in with this)</span><input class="input num" id="em-phone" type="tel" value="${esc(fmtPhone(acctFor(e?.id)?.phone || e?.phone || ''))}" placeholder="(310) 555-0100"></label>
+      <label class="field"><span>${e && acctFor(e.id) ? '6-digit PIN (leave blank to keep their current PIN)' : '6-digit PIN'}</span><div class="row" style="gap:6px"><input class="input num" id="em-pin" inputmode="numeric" maxlength="6" autocomplete="off" value="${e && acctFor(e.id) ? '' : randPin()}" placeholder="${e && acctFor(e.id) ? '••••••' : ''}"><button class="btn sm" data-act="pin-gen" type="button">New</button></div></label>` :
+      `<label class="field"><span>Clock PIN (4 digits)</span><input class="input num" id="em-pin" inputmode="numeric" maxlength="4" value="${esc(e?.pin||String(Math.floor(1000+Math.random()*9000)))}"></label>
+      <label class="field"><span>Phone</span><input class="input" id="em-phone" value="${esc(e?.phone||'')}" placeholder="(310) 555-0100"></label>`}
       <label class="field"><span>Home venue</span><select class="input" id="em-home">${venueOpts(e?.home || 'pico')}</select></label>
     </div>
     <div class="label" style="margin-top:16px">Badge color</div>
@@ -789,6 +792,8 @@ function modalEmp(id){
     <div class="label" style="margin-top:16px">Availability</div>
     <div class="av-grid">${[1,2,3,4,5,6,0].map(d => { const a = (D().availability?.[e?.id]?.days||{})[d]; const nm = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][d]; return `<div class="av-day"><label class="check" style="margin:0"><input type="checkbox" class="av-on" data-d="${d}" ${!a || !a.off ? 'checked':''}><span>${nm}</span></label><input class="input sm av-f" data-d="${d}" type="time" value="${a?.from||'00:00'}"><input class="input sm av-t" data-d="${d}" type="time" value="${a?.to||'23:59'}"></div>`; }).join('')}</div>
     ${D().availability?.[e?.id]?.note ? `<p class="small muted" style="margin-top:6px">Their note: &ldquo;${esc(D().availability[e.id].note)}&rdquo;</p>` : '<p class="small faint" style="margin-top:6px">Crew can also update this from the Schedule tab of the crew app.</p>'}
+    ${CC.PROD ? `<label class="check" style="margin-top:14px"><input type="checkbox" id="em-mgr" ${acctFor(e?.id)?.is_manager ? 'checked' : ''}><span><b>Manager access</b><br><span class="faint small">Lets them sign in to this console with the same phone and PIN. Managers see pay rates and everyone&rsquo;s records.</span></span></label>` : ''}
+    ${CC.PROD && e ? docsBlock('employee', e.id) : ''}
     ${e ? `<label class="check" style="margin-top:14px"><input type="checkbox" id="em-active" ${e.active!==false?'checked':''}><span><b>Active</b><br><span class="faint small">Inactive crew can&rsquo;t sign in and are hidden from scheduling. Their records are kept.</span></span></label>` : ''}
     <div class="row between" style="margin-top:18px;gap:8px">
       ${e ? `<button class="btn sm danger" data-act="emp-del" data-v="${e.id}">${ic('trash')} Delete</button>` : '<span></span>'}
@@ -806,6 +811,7 @@ function saveEmp(id){
   syncRoles();
   const name = val('em-name').trim(), pin = val('em-pin').trim();
   if (!name){ toast('Add a name'); return; }
+  if (CC.PROD) return saveEmpProd(id, name, pin);
   if (!/^\d{4}$/.test(pin)){ toast('PIN must be 4 digits'); return; }
   if (D().employees.some(x => x.pin===pin && x.id!==id && x.active!==false)){ toast('Another crew member uses that PIN'); return; }
   if (pin === ST().managerPin){ toast('That PIN is the manager PIN'); return; }
@@ -820,6 +826,40 @@ function saveEmp(id){
   else { const n = Math.max(1000, ...D().employees.map(x=>parseInt(x.id.slice(2))||0)) + 1;
     D().employees.push({id:`E-${n}`, active:true, ...data}); (D().availability ||= {})[`E-${n}`] = {days:avDays, t:now()}; (D().docs ||= {})[`E-${n}`] = {}; commit(`Added crew member ${name} (E-${n})`); }
   closeModal(); toast('Crew saved'); render();
+}
+
+async function saveEmpProd(id, name, pin){
+  const phone = digits10(val('em-phone')), had = id ? acctFor(id) : null;
+  if (phone.length !== 10){ toast('Add their 10-digit mobile number'); return; }
+  if (!had && !/^\d{6}$/.test(pin)){ toast('Set a 6-digit PIN'); return; }
+  if (pin && !/^\d{6}$/.test(pin)){ toast('PIN must be 6 digits'); return; }
+  if (pin && (/^(\d)\1{5}$/.test(pin) || pin === '123456')){ toast('Pick a PIN that’s harder to guess'); return; }
+  const roles = M.editRoles.filter(r=>r.role.trim()).map(r=>({role:r.role.trim(), rate:r.rate}));
+  if (!roles.length){ toast('Add at least one role'); return; }
+  const other = (M.accounts||[]).find(a => a.phone === phone && a.emp_id !== id);
+  if (other){ toast(`${other.name} already uses that phone number`); return; }
+  const color = document.querySelector('input[name=em-color]:checked')?.value || COLORS[0];
+  const data = {name, phone:fmtPhone(phone), home:val('em-home'), roles, color, initials:initialsOf(name), minor:chk('em-minor')};
+  const avDays = {}; document.querySelectorAll('.av-on').forEach(c => { const d = c.dataset.d; avDays[d] = c.checked ? {from:document.querySelector(`.av-f[data-d="${d}"]`).value||'00:00', to:document.querySelector(`.av-t[data-d="${d}"]`).value||'23:59'} : {off:true}; });
+  let empId = id, active = true;
+  if (id){ const e = emp(id); active = chk('em-active'); Object.assign(e, data, {active}); delete e.pin; (D().availability ||= {})[id] = {...(D().availability[id]||{}), days:avDays, t:now()}; }
+  else { empId = 'E-' + Date.now().toString(36).slice(-4).toUpperCase() + Math.random().toString(36).slice(2,4).toUpperCase();
+    D().employees.push({id:empId, active:true, ...data}); (D().availability ||= {})[empId] = {days:avDays, t:now()}; (D().docs ||= {})[empId] = {}; }
+  commit(`${id ? 'Updated' : 'Added'} crew member ${name}`);
+  const btn = document.querySelector('[data-act=emp-save]'); if (btn) btn.disabled = true;
+  await CC.pushNow();
+  const r = await CC.admin.saveAccount({...(had ? {id:had.id} : {}), emp_id:empId, name, phone, pin: pin || undefined, is_manager:chk('em-mgr'), active});
+  if (btn) btn.disabled = false;
+  if (!r.ok){ toast(r.error || 'Saved the profile, but sign-in details didn’t save'); return; }
+  await loadAccounts();
+  if (pin) openModal(`${mHead('Sign-in ready', `Give ${esc(name)} these details. The PIN isn’t shown again.`)}
+    <div class="receipt"><div class="split"><span class="muted">Crew app</span><span class="mono small">${esc(location.href.replace(/manager\.html.*$/, ''))}</span></div>
+    <div class="split"><span class="muted">Mobile number</span><span class="num">${esc(fmtPhone(phone))}</span></div>
+    <div class="split"><span class="muted">PIN</span><span class="num" style="font-size:22px;letter-spacing:4px"><b>${esc(pin)}</b></span></div></div>
+    <p class="small faint" style="margin-top:10px">Tell them in person or by text. They can change it later with a manager&rsquo;s help.</p>
+    <div class="row" style="justify-content:flex-end;margin-top:14px"><button class="btn sm primary" data-act="close">Done</button></div>`);
+  else { closeModal(); toast('Crew saved'); }
+  render();
 }
 
 function modalVenue(id){
@@ -923,6 +963,137 @@ function csv(kind){
 let toastT;
 function toast(msg){ const t = document.getElementById('toast'); t.textContent = msg; t.classList.add('show'); clearTimeout(toastT); toastT = setTimeout(()=>t.classList.remove('show'), 2600); }
 
+/* ---------- Live app: owner setup and phone + PIN sign-in ---------- */
+const fmtPhone = s => { const d = String(s||'').replace(/\D/g,'').slice(0,10); return d.length > 6 ? `(${d.slice(0,3)}) ${d.slice(3,6)}-${d.slice(6)}` : d.length > 3 ? `(${d.slice(0,3)}) ${d.slice(3)}` : d; };
+const digits10 = s => String(s||'').replace(/\D/g,'').replace(/^1(?=\d{10}$)/,'');
+const randPin = () => { const a = new Uint32Array(1); crypto.getRandomValues(a); return String(100000 + a[0] % 900000); };
+function renderProdLogin(){
+  const err = M.loginErr ? `<div class="alert bad" style="margin:12px 0 0">${ic('alert')}<div>${esc(M.loginErr)}</div></div>` : '';
+  if (M.mode === 'loading') return `<div class="m-login"><div class="m-login-card"><p class="muted">Connecting…</p></div></div>`;
+  if (M.mode === 'setup') return `
+  <div class="m-login"><div class="m-login-card" style="text-align:left">
+    <div class="hero-word" style="margin:8px 0 6px">Set up<br><span>CJ&rsquo;s Crew</span></div>
+    <p class="muted small" style="margin-bottom:14px">Create the owner account. You&rsquo;ll use this phone number and PIN to open the manager console. The setup code was sent to you with the app link and works once.</p>
+    <label class="field"><span>Setup code</span><input class="input mono" id="su-code" placeholder="XXXX-XXXX" autocomplete="off" autocapitalize="characters"></label>
+    <label class="field"><span>Your name</span><input class="input" id="su-name" autocomplete="name" placeholder="e.g. CJ"></label>
+    <label class="field"><span>Mobile number</span><input class="input num" id="su-phone" type="tel" inputmode="tel" autocomplete="tel" placeholder="(310) 555-0100"></label>
+    <label class="field"><span>Choose a 6-digit PIN</span><input class="input num" id="su-pin" type="password" inputmode="numeric" maxlength="6" autocomplete="new-password"></label>
+    <label class="field"><span>Type the PIN again</span><input class="input num" id="su-pin2" type="password" inputmode="numeric" maxlength="6" autocomplete="new-password"></label>
+    ${err}
+    <button class="btn primary" style="margin-top:14px;width:100%" data-act="su-go" ${M.busy?'disabled':''}>${M.busy ? 'Setting up…' : 'Create owner account'}</button>
+  </div></div>`;
+  return `
+  <div class="m-login"><div class="m-login-card">
+    <div class="hero-word" style="margin:8px 0 6px">Boss<br>Crew<br><span>Manager</span></div>
+    <p class="muted small" style="margin-bottom:14px">Sign in with your mobile number and 6-digit manager PIN.</p>
+    <div style="text-align:left">
+      <label class="field"><span>Mobile number</span><input class="input num" id="ml-phone" type="tel" inputmode="tel" autocomplete="tel" placeholder="(310) 555-0100" value="${esc(fmtPhone(M.phone||''))}"></label>
+      <label class="field"><span>PIN</span><input class="input num" id="ml-pin" type="password" inputmode="numeric" maxlength="6" autocomplete="current-password"></label>
+    </div>
+    ${err}
+    <button class="btn primary" style="margin-top:14px;width:100%" data-act="ml-go" ${M.busy?'disabled':''}>${M.busy ? 'Signing in…' : 'Sign in'}</button>
+    <p class="small faint" style="margin-top:14px">Forgot your PIN? Another manager can reset it from Crew. Five wrong tries locks sign-in for 15 minutes.</p>
+    <a class="link" href="index.html" style="display:block;text-align:center;margin-top:10px">← Back to the crew app</a>
+  </div></div>`;
+}
+async function prodInit(){
+  if (CC.auth.session?.role === 'manager'){ M.authed = true; render(); loadAccounts(); return; }
+  const s = await CC.auth.status();
+  M.mode = s.ok && s.ready === false ? 'setup' : 'login'; render();
+}
+async function mlGo(){
+  const phone = digits10(val('ml-phone')), pin = val('ml-pin').trim(); M.phone = phone;
+  if (phone.length !== 10){ M.loginErr = 'Enter your 10-digit mobile number.'; render(); return; }
+  if (!/^\d{6}$/.test(pin)){ M.loginErr = 'Your PIN is 6 digits.'; render(); return; }
+  M.busy = true; M.loginErr = ''; render();
+  const r = await CC.auth.login(phone, pin, false, 'manager'); M.busy = false;
+  if (!r.ok){ M.loginErr = r.error === 'offline' ? 'No connection. Try again.' : r.error || 'Couldn’t sign in.'; render(); return; }
+  M.authed = true; toast(`Welcome back, ${MGR()}`); render(); loadAccounts();
+}
+async function suGo(){
+  const code = val('su-code').trim().toUpperCase(), name = val('su-name').trim(), phone = digits10(val('su-phone')), pin = val('su-pin').trim(), pin2 = val('su-pin2').trim();
+  const bad = m => { M.loginErr = m; render(); };
+  if (!/^[A-Z0-9]{4}-[A-Z0-9]{4}$/.test(code)) return bad('Enter the setup code, like ABCD-1234.');
+  if (!name) return bad('Enter your name.');
+  if (phone.length !== 10) return bad('Enter a 10-digit mobile number.');
+  if (!/^\d{6}$/.test(pin)) return bad('Choose a 6-digit PIN.');
+  if (/^(\d)\1{5}$/.test(pin) || pin === '123456' || pin === '654321') return bad('Pick a PIN that’s harder to guess.');
+  if (pin !== pin2) return bad('The two PINs don’t match.');
+  M.busy = true; M.loginErr = ''; render();
+  const r = await CC.auth.setup(code, name, phone, pin); M.busy = false;
+  if (!r.ok) return bad(r.error || 'Setup failed. Try again.');
+  M.authed = true; M.page = 'crew'; toast('You’re set up. Add your crew next.'); render(); loadAccounts();
+}
+/* Sign-in accounts (phone, PIN, manager access) live on the server, not in the shared data. */
+M.accounts = null;
+async function loadAccounts(){ if (!CC.PROD || !M.authed) return; const r = await CC.admin.accounts(); if (r.ok){ M.accounts = r.accounts; if (!modalRoot.innerHTML) render(); } }
+const acctFor = empId => (M.accounts || []).find(a => a.emp_id === empId);
+function signinCell(e){
+  if (!CC.PROD) return `<td class="num mono">${'•'.repeat((e.pin||'').length)}</td>`;
+  const a = acctFor(e.id);
+  if (M.accounts === null) return '<td class="small faint">…</td>';
+  if (!a) return `<td>${badge('No sign-in yet','warn')}</td>`;
+  return `<td class="small"><div class="num">${esc(fmtPhone(a.phone))}</div>${a.locked ? `${badge('Locked','bad')} <button class="link" data-act="acct-unlock" data-v="${a.id}">Unlock</button>` : a.is_manager ? badge('Manager','info') : a.active ? '' : badge('Off')}</td>`;
+}
+/* Documents attached to a person (employee or applicant) */
+const fSize = n => n > 1048576 ? (n/1048576).toFixed(1) + ' MB' : Math.max(1, Math.round(n/1024)) + ' KB';
+async function fillDocs(boxId, ownerType, ownerId){
+  const box = document.getElementById(boxId); if (!box) return;
+  const r = await CC.files.list(ownerType, ownerId);
+  const b2 = document.getElementById(boxId); if (!b2) return;
+  if (!r.ok){ b2.innerHTML = `<div class="small muted">Couldn’t load documents.</div>`; return; }
+  b2.innerHTML = r.docs.length ? r.docs.map(d => `<div class="li"><div class="grow"><div class="title ellipsis" style="font-size:13.5px">${esc(d.label || d.filename)}</div><div class="meta">${esc(d.kind||'')} · ${fSize(d.size||0)} · ${fDate(new Date(d.created_at).getTime())} · ${esc(d.uploaded_by||'')}</div></div>
+    <button class="btn sm" data-act="doc-view" data-v="${esc(d.id)}">Open</button><button class="btn sm" data-act="doc-dl" data-v="${esc(d.id)}">Download</button><button class="btn sm danger" data-act="doc-del" data-v="${esc(d.id)}" data-box="${boxId}" data-ot="${ownerType}" data-oid="${esc(ownerId)}">${ic('trash')}</button></div>`).join('')
+    : '<div class="small muted">No documents yet.</div>';
+}
+function docsBlock(ownerType, ownerId){
+  const id = 'docs-' + ownerType + '-' + String(ownerId).replace(/[^\w-]/g,'_');
+  setTimeout(() => fillDocs(id, ownerType, ownerId), 0);
+  return `<div class="row between" style="margin-top:16px"><div class="label">Documents <span class="faint small">(private)</span></div></div>
+    <div class="list" id="${id}" style="margin-top:8px"><div class="small muted">Loading…</div></div>
+    <div class="row" style="gap:8px;margin-top:8px;flex-wrap:wrap">
+      <select class="input sm" id="${id}-kind" style="width:auto"><option value="id">Photo ID</option><option value="i9">I-9 documents</option><option value="w4">W-4</option><option value="direct_deposit">Direct deposit</option><option value="food_handler">Food handler card</option><option value="work_permit">Work permit</option><option value="certificate">Certificate</option><option value="resume">Resume</option><option value="other" selected>Other</option></select>
+      <input class="input sm" type="file" id="${id}-file" style="width:auto;max-width:240px" accept=".pdf,.jpg,.jpeg,.png,.heic,.webp,.doc,.docx,.txt,application/pdf,image/*">
+      <button class="btn sm" data-act="doc-up" data-box="${id}" data-ot="${ownerType}" data-oid="${esc(ownerId)}">${ic('plus')} Upload</button></div>`;
+}
+EXT.acts = EXT.acts || {};
+Object.assign(EXT.acts, {
+  'ml-go': () => { mlGo(); return false; },
+  'su-go': () => { suGo(); return false; },
+  'acct-unlock': async (el, v) => { const r = await CC.admin.unlock(v); toast(r.ok ? 'Unlocked' : 'Couldn’t unlock'); loadAccounts(); return false; },
+  'doc-view': async (el, v) => { const r = await CC.files.open(v); if (!r.ok) toast(r.error || 'Couldn’t open'); return false; },
+  'doc-dl': async (el, v) => { const r = await CC.files.open(v, true); if (!r.ok) toast(r.error || 'Couldn’t download'); return false; },
+  'doc-up': async (el) => { const box = el.dataset.box, f = document.getElementById(box + '-file')?.files?.[0]; if (!f){ toast('Choose a file first'); return false; }
+    const kindSel = document.getElementById(box + '-kind'); el.disabled = true; toast('Uploading…');
+    const r = await CC.files.upload(f, el.dataset.ot, el.dataset.oid, kindSel.value, kindSel.options[kindSel.selectedIndex].text + ' · ' + f.name); el.disabled = false;
+    if (!r.ok){ toast(r.error || 'Upload failed'); return false; } toast('Uploaded'); document.getElementById(box + '-file').value = ''; fillDocs(box, el.dataset.ot, el.dataset.oid); return false; },
+  'doc-del': async (el, v) => { if (!el.dataset.sure){ el.dataset.sure = '1'; el.textContent = 'Delete?'; return false; }
+    const r = await CC.files.remove(v); toast(r.ok ? 'Deleted' : (r.error || 'Couldn’t delete')); fillDocs(el.dataset.box, el.dataset.ot, el.dataset.oid); return false; },
+  'my-pin': () => { openModal(`${mHead('Change my PIN', 'Your manager sign-in PIN. 6 digits.')}
+      <div class="fgrid"><label class="field"><span>Current PIN</span><input class="input num" id="mp-old" type="password" inputmode="numeric" maxlength="6"></label>
+      <label class="field"><span>New PIN</span><input class="input num" id="mp-new" type="password" inputmode="numeric" maxlength="6"></label>
+      <label class="field"><span>New PIN again</span><input class="input num" id="mp-new2" type="password" inputmode="numeric" maxlength="6"></label></div>
+      <div class="row" style="justify-content:flex-end;gap:8px;margin-top:16px"><button class="btn sm" data-act="close">Cancel</button><button class="btn sm primary" data-act="my-pin-save">Save</button></div>`); return false; },
+  'my-pin-save': async () => { const o = val('mp-old'), n = val('mp-new'), n2 = val('mp-new2');
+    if (!/^\d{6}$/.test(n)){ toast('New PIN must be 6 digits'); return false; } if (n !== n2){ toast('The new PINs don’t match'); return false; }
+    const r = await CC.auth.changePin(o, n); if (!r.ok){ toast(r.error || 'Couldn’t change PIN'); return false; } closeModal(); toast('PIN changed'); return false; },
+  'backup-dl': async () => { toast('Preparing backup…'); const r = await CC.admin.backup(); toast(r.ok ? 'Backup downloaded' : 'Couldn’t make a backup'); return false; },
+  'audit-open': async () => { const r = await CC.admin.audit(); if (!r.ok){ toast('Couldn’t load'); return false; }
+    openModal(`${mHead('Security log', 'Sign-ins, PIN changes, document views and uploads. Latest 200.')}<div class="list" style="max-height:60vh;overflow:auto">${r.audit.map(a => `<div class="li"><div class="grow"><div class="small"><b>${esc(a.actor)}</b> · ${esc(String(a.action).replace(/_/g,' '))}</div><div class="meta">${fDate(new Date(a.created_at).getTime())} ${fTime(new Date(a.created_at).getTime())}</div></div></div>`).join('') || '<div class="li small muted">Nothing yet.</div>'}</div><div class="row" style="justify-content:flex-end;margin-top:14px"><button class="btn sm" data-act="close">Close</button></div>`, true); return false; },
+  'pin-gen': () => { const i = document.getElementById('em-pin'); if (i){ i.value = randPin(); i.type = 'text'; } return false; },
+});
+function accountCard(){
+  if (!CC.PROD) return '';
+  return `<section class="card"><h3 class="card-h">Your sign-in &amp; data</h3>
+    <p class="small muted">Signed in as <b>${esc(CC.auth.session?.name || MGR())}</b>. Manager sessions end after 12 hours.</p>
+    <div class="row" style="gap:8px;flex-wrap:wrap;margin-top:10px">
+      <button class="btn sm" data-act="my-pin">${ic('shield')} Change my PIN</button>
+      <button class="btn sm" data-act="backup-dl">${ic('download')} Download a full backup</button>
+      <button class="btn sm" data-act="audit-open">${ic('list')} Security log</button>
+    </div>
+    <p class="small faint" style="margin-top:10px">The server also saves a daily snapshot for 90 days. Download a backup at least once a month and keep it somewhere safe. Time records must be kept for at least 4 years.</p></section>`;
+}
+
 /* ---------- Events ---------- */
 document.addEventListener('click', ev => {
   const el = ev.target.closest('[data-act]'); if (!el) return;
@@ -936,13 +1107,13 @@ document.addEventListener('click', ev => {
       M.pinErr=false;
       if (M.pin.length===4){ if (M.pin===ST().managerPin){ M.authed=true; M.pin=''; CC.log(MGR(),'Signed in to the manager console'); CC.save(); toast(`Welcome back, ${MGR()}`);} else { M.pinErr=true; M.pin=''; } }
       break; }
-    case 'signout': M.authed=false; break;
-    case 'page': M.page = v; M.navOpen=false; history.replaceState(null,'','#'+v); window.scrollTo(0,0); break;
+    case 'signout': if (CC.PROD){ CC.auth.logout(); M.authed=false; M.mode='login'; M.accounts=null; break; } M.authed=false; break;
+    case 'page': if (v === 'crew') loadAccounts(); M.page = v; M.navOpen=false; history.replaceState(null,'','#'+v); window.scrollTo(0,0); break;
     case 'nav': M.navOpen = !M.navOpen; break;
     case 'nav-close': M.navOpen = false; break;
     case 'demo-toggle': M.demoOpen = !M.demoOpen; break;
-    case 'ff': D().offsetMs = v==='0' ? 0 : (D().offsetMs||0) + Number(v)*MIN; CC.save(); toast(v==='0' ? 'Back to real time' : `Jumped ahead ${v>=60?v/60+' hr':v+' min'}`); break;
-    case 'reset': if (!el.dataset.ok){ confirmModal('Reset demo data?', 'This restores the sample crew, venues, schedule and punches, and clears every change made in the crew app and the manager console.', 'reset', '', 'Reset'); return; }
+    case 'ff': if (CC.PROD) return; D().offsetMs = v==='0' ? 0 : (D().offsetMs||0) + Number(v)*MIN; CC.save(); toast(v==='0' ? 'Back to real time' : `Jumped ahead ${v>=60?v/60+' hr':v+' min'}`); break;
+    case 'reset': if (CC.PROD) return; if (!el.dataset.ok){ confirmModal('Reset demo data?', 'This restores the sample crew, venues, schedule and punches, and clears every change made in the crew app and the manager console.', 'reset', '', 'Reset'); return; }
       CC.reset(); closeModal(); M.demoOpen=false; toast('Demo data reset'); break;
     case 'close': closeModal(); return;
 
@@ -1051,6 +1222,7 @@ document.addEventListener('click', ev => {
       if (!el.dataset.ok){ confirmModal(`Delete ${esc(e.name)}?`, has ? 'They have time records, so they&rsquo;ll be set to inactive instead. Their punches stay in payroll history and their future shifts are removed.' : 'This removes them and their future shifts.', 'emp-del', v, has?'Deactivate':'Delete'); return; }
       D().shifts = D().shifts.filter(s => !(s.emp===v && s.startT >= startOfDay(now())));
       if (has) e.active = false; else D().employees = D().employees.filter(x=>x.id!==v);
+      if (CC.PROD){ const ac = acctFor(v); if (ac) CC.admin.saveAccount({id:ac.id, phone:ac.phone, name:ac.name, is_manager:false, active:false}).then(loadAccounts); }
       commit(`${has?'Deactivated':'Deleted'} crew member ${e.name}`); closeModal(); toast(has?'Set to inactive':'Deleted'); break; }
 
     /* venues */
@@ -1091,13 +1263,13 @@ document.addEventListener('click', ev => {
     /* rules */
     case 'rules-save': {
       const s = ST(); const n = k => { const x = parseFloat(val('st-'+k)); return isFinite(x) ? x : s[k]; };
-      const pin = val('st-managerPin').trim();
-      if (!/^\d{4}$/.test(pin)){ toast('Manager PIN must be 4 digits'); return; }
-      if (D().employees.some(e=>e.pin===pin && e.active!==false)){ toast('A crew member already uses that PIN'); return; }
+      const pin = CC.PROD ? undefined : val('st-managerPin').trim();
+      if (!CC.PROD && !/^\d{4}$/.test(pin)){ toast('Manager PIN must be 4 digits'); return; }
+      if (!CC.PROD && D().employees.some(e=>e.pin===pin && e.active!==false)){ toast('A crew member already uses that PIN'); return; }
       const next = {...s, otDaily:n('otDaily'), dtDaily:n('dtDaily'), otWeekly:n('otWeekly'), otMult:n('otMult'), dtMult:n('dtMult'), mealByHour:n('mealByHour'), mealMin:n('mealMin'), restPer:n('restPer'), restMin:n('restMin'),
         earlyMin:n('earlyMin'), lateGrace:n('lateGrace'), autoClockOutHrs:n('autoClockOutHrs'), paydayLag:n('paydayLag'), periodDays:parseInt(val('st-periodDays'))||14, payAnchor:val('st-payAnchor')||s.payAnchor,
         mealPremium:chk('st-mealPremium'), blockEarly:chk('st-blockEarly'), allowUnscheduled:chk('st-allowUnscheduled'), allowWeakGps:chk('st-allowWeakGps'), allowExceptions:chk('st-allowExceptions'), requireSelfie:chk('st-requireSelfie'),
-        managerName:val('st-managerName').trim()||s.managerName, managerPin:pin,
+        managerName:val('st-managerName').trim()||s.managerName, ...(CC.PROD ? {} : {managerPin:pin}),
         breakWarnMin:n('breakWarnMin'), breakLateMin:n('breakLateMin'), allowNfc:chk('st-allowNfc'), allowKiosk:chk('st-allowKiosk'), nfcPairing:chk('st-nfcPairing'), nfcSelfie:chk('st-nfcSelfie'), crewAppUrl:val('st-crewAppUrl').trim(),
         breakPlan:[...document.querySelectorAll('#bpRows .bp-row')].map(r => { const kind = r.querySelector('.bp-kind').value, min = parseFloat(r.querySelector('.bp-min').value)||10;
           return {kind, label:r.querySelector('.bp-label').value.trim() || (kind==='meal' ? 'Lunch break' : `${min}-min break`), min, at:parseFloat(r.querySelector('.bp-at').value)||0, minShift:parseFloat(r.querySelector('.bp-ms').value)||0}; }).sort((a,b)=>a.at-b.at)};
@@ -1124,7 +1296,7 @@ document.addEventListener('click', ev => {
       D().nfcTags = D().nfcTags.filter(x=>x.id!==v); commit(`Deleted sticker "${t.label}"`); toast('Sticker deleted'); break; }
     case 'dev-unlink': { const d = D().devices[v]; delete D().devices[v]; commit(`Unlinked a phone for ${emp(d?.emp)?.name || 'a crew member'}`); toast('Phone unlinked'); break; }
     default: if (EXT.acts[act]){ const res = EXT.acts[act](el, v, ev); if (res === false) return; } break;
-    case 'rules-default': { const pin = ST().managerPin, name = ST().managerName; D().settings = {...CC.DEFAULT_SETTINGS, managerPin:pin, managerName:name}; commit('Restored default rules'); toast('Defaults restored'); break; }
+    case 'rules-default': { const pin = ST().managerPin, name = ST().managerName; D().settings = {...CC.DEFAULT_SETTINGS, ...(CC.PROD ? {requireSelfie:false, ewaEnabled:false, smsReminders:false} : {managerPin:pin}), managerName:name}; if (CC.PROD) delete D().settings.managerPin; commit('Restored default rules'); toast('Defaults restored'); break; }
   }
   const y = window.scrollY; render(); window.scrollTo(0, y);
 });
@@ -1148,7 +1320,8 @@ document.addEventListener('input', ev => {
 });
 document.addEventListener('keydown', ev => {
   if (ev.key === 'Escape' && modalRoot.innerHTML) closeModal();
-  if (!M.authed && /^[0-9]$/.test(ev.key) && !modalRoot.innerHTML){ document.querySelector(`[data-act=key][data-v="${ev.key}"]`)?.click(); }
+  if (CC.PROD && !M.authed && ev.key === 'Enter'){ if (document.getElementById('ml-phone')) mlGo(); else if (document.getElementById('su-code')) suGo(); return; }
+  if (!CC.PROD && !M.authed && /^[0-9]$/.test(ev.key) && !modalRoot.innerHTML){ document.querySelector(`[data-act=key][data-v="${ev.key}"]`)?.click(); }
 });
 window.addEventListener('hashchange', () => { const h = location.hash.slice(1); if (h && h !== M.page){ M.page = h; render(); } });
 
@@ -1176,5 +1349,6 @@ window.MGR = {M, EXT, PAGES, D, ST, emp, venue, MGR, commit, toast, openModal, c
   weekStart, venueOpts, roleOpts, activeEmps, livePunches, todaysShifts, shiftStatus, laborCost, curPs, periodNav, isClosed, audience, resolveReq, csv,
   addPage(key, icon, label, group, fn, after){ const i = after ? PAGES.findIndex(p=>p[0]===after) : -1; const row = [key, icon, label, group]; if (i >= 0) PAGES.splice(i+1, 0, row); else PAGES.push(row); EXT.fns[key] = fn; },
 };
-CC.ready.then(() => setTimeout(render, 0));
+CC.ready.then(() => { if (CC.PROD){ CC.auth.onChange(s => { if (!s && M.authed){ M.authed = false; M.mode = 'login'; M.accounts = null; closeModal(); toast('Signed out. Sign in again.'); render(); } });
+  CC.onStale = () => toast('Someone else saved at the same time. Showing the latest.'); prodInit(); return; } setTimeout(render, 0); });
 })();
