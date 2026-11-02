@@ -59,6 +59,17 @@ jobs:
             WP=$(getent hosts "$W" | awk '{print $2; exit}'); echo "Website server name: ${WP:-unknown}"
             case "$WP" in *.hostgator.com) [ "$(getent ahostsv4 "$WP" | awk '{print $1; exit}')" = "$W" ] && HOST="$WP" && echo "Using the website's server instead.";; esac
           fi
+          # Still no match (for example an IP address was entered): ask the server for its own name.
+          if [ "$HOST" = "$FTP_SERVER" ] && [ -n "$CN" ]; then
+            A=$(getent ahostsv4 "$FTP_SERVER" | awk '{print $1; exit}')
+            for port in 587 25 465 21; do
+              if [ "$port" = 465 ]; then BN=$(echo QUIT | timeout 10 openssl s_client -quiet -connect "$A:465" 2>/dev/null | head -1)
+              else BN=$(timeout 10 bash -c "exec 3<>/dev/tcp/$A/$port; head -1 <&3" 2>/dev/null); fi
+              N=$(echo "$BN" | grep -oiE '[a-z0-9.-]+\.'"$CN" | head -1)
+              echo "Port $port says: ${N:-nothing useful}"
+              if [ -n "$N" ] && [ "$(getent ahostsv4 "$N" | awk '{print $1; exit}')" = "$A" ]; then HOST="$N"; echo "Using server name $N"; break; fi
+            done
+          fi
           [ "$HOST" = "$FTP_SERVER" ] && echo "::warning::Couldn't match the certificate; set FTP_SERVER to the server name shown in cPanel (for example gator1234.hostgator.com)."
           echo "FTP server address: $(getent ahostsv4 "$HOST" | awk '{print $1; exit}') / website address: $(getent ahostsv4 cjwtbk.com | awk '{print $1; exit}')"
           echo "Username looks like: $(echo "$FTP_USERNAME" | sed -E 's/^(.).*@/\1***@/') (length ${#FTP_USERNAME}), password length ${#FTP_PASSWORD}"
