@@ -1,0 +1,64 @@
+/* Light themes for CJ's Crew - Clock. Applied with <html data-theme="...">. Dark is the default when no theme is set. */
+html[data-theme]{color-scheme:light}
+
+/* Option A: Cream (warm, matches the CJ's brand) */
+html[data-theme="cream"]{
+  --bg:#f7f0e4; --surface:#fffdf9; --surface-2:#fbf5ec; --surface-3:#f1e7d8; --line:#e2d4bf;
+  --text:#2a1d14; --muted:#6b5546; --faint:#8a7462;
+  --sauce:#c8341b; --sauce-hi:#d9442a; --sauce-deep:#9c2612; --mustard:#9a6400;
+  --ok:#1f7a45; --warn:#9a6400; --bad:#c62d17; --info:#2c6590;
+}
+/* Option B: Clean white (crisp and neutral) */
+html[data-theme="white"]{
+  --bg:#f4f4f2; --surface:#ffffff; --surface-2:#fafaf9; --surface-3:#efeeec; --line:#e2e0dc;
+  --text:#1c1917; --muted:#5c5752; --faint:#857f79;
+  --sauce:#cf3a1f; --sauce-hi:#de4a2e; --sauce-deep:#a12a14; --mustard:#946200;
+  --ok:#1d7743; --warn:#946200; --bad:#c42c16; --info:#2a6290;
+}
+/* Option C: Mustard (bright, sunny, high energy) */
+html[data-theme="sun"]{
+  --bg:#fcefc7; --surface:#fffbef; --surface-2:#fff6dc; --surface-3:#f7e6b4; --line:#ead39a;
+  --text:#2b1c0e; --muted:#6e5432; --faint:#8b704a;
+  --sauce:#c8341b; --sauce-hi:#d9442a; --sauce-deep:#9c2612; --mustard:#8a5600;
+  --ok:#1f7343; --warn:#8a5600; --bad:#c22a14; --info:#2a5f8a;
+}
+/* Option D: Cool grey (calm, office style) */
+html[data-theme="cool"]{
+  --bg:#eceff3; --surface:#ffffff; --surface-2:#f6f8fa; --surface-3:#e6eaef; --line:#d6dce4;
+  --text:#16202b; --muted:#53606e; --faint:#7a8593;
+  --sauce:#cc371d; --sauce-hi:#dc472c; --sauce-deep:#a02913; --mustard:#8f5f00;
+  --ok:#1b7442; --warn:#8f5f00; --bad:#c22a14; --info:#245d8a;
+}
+
+/* Fix-ups for spots that used fixed dark colors */
+html[data-theme] .geo-map{background:
+  radial-gradient(circle at 50% 55%, rgba(200,52,27,.16) 0 34px, transparent 35px),
+  repeating-linear-gradient(0deg, rgba(0,0,0,.05) 0 1px, transparent 1px 22px),
+  repeating-linear-gradient(90deg, rgba(0,0,0,.05) 0 1px, transparent 1px 22px),
+  var(--surface-3)}
+html[data-theme] .punch.out{background:radial-gradient(circle at 35% 30%, #fff, var(--surface-3) 70%);box-shadow:0 0 0 10px rgba(0,0,0,.04),0 18px 40px rgba(60,40,20,.18)}
+html[data-theme] .selfie{background:var(--surface-3)}
+html[data-theme] .seg button.on, html[data-theme] .chip-t.on{color:var(--text)}
+html[data-theme] .alert.warn{color:#6e4a00}
+html[data-theme] .alert.bad{color:#8f2010}
+html[data-theme] .alert.ok{color:#14532f}
+html[data-theme] .alert.info{color:#1d4a6e}
+html[data-theme] .btn.danger{color:var(--bad)}
+html[data-theme] .toast{background:#2a1d14;color:#fff}
+html[data-theme] .scrim{background:rgba(30,20,10,.35)}
+html[data-theme] .cl-i.done .cl-box{color:#fff}
+html[data-theme] .m-top{background:color-mix(in srgb, var(--bg) 90%, transparent)}
+html[data-theme] .m-side{background:var(--surface)}
+html[data-theme] .m-login-card, html[data-theme] .m-pop, html[data-theme] .modal{box-shadow:0 24px 60px rgba(60,40,20,.16)}
+html[data-theme] .tbl tbody tr:hover td{background:rgba(0,0,0,.025)}
+html[data-theme] .sb-d{background:rgba(0,0,0,.02)}
+html[data-theme] .tl-row{border-bottom-color:rgba(0,0,0,.07)}
+html[data-theme] .tl-shift{border-color:rgba(0,0,0,.25);background:rgba(0,0,0,.03)}
+html[data-theme] .phone{box-shadow:0 30px 80px rgba(60,40,20,.15)}
+html[data-theme] .av-c{color:#fff}
+html[data-theme] .bd-h.bad, html[data-theme] .bd-row.alert .bd-name{color:var(--bad)}
+html[data-theme] .bd-chip.brk{color:#fff}
+html[data-theme] body.ap-body, html[data-theme] .ap-bg{background:var(--bg)}
+html[data-theme] .key{background:var(--surface);border:1px solid var(--line)}
+html[data-theme] input[type="date"], html[data-theme] input[type="month"], html[data-theme] input[type="time"]{color-scheme:light}
+html[data-theme] .bd-kpi.bad b,html[data-theme] .bd-kpi.bad span{color:var(--bad)}

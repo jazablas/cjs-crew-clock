@@ -534,6 +534,7 @@ function takeServer(r, keepLocal){
 }
 let pushTimer = null;
 function save(){
+  try { syncTheme(); } catch(e){}
   if (LOCAL_MODE){ ls.set(LS_KEY, JSON.stringify(db)); online = true; return; }
   if (!PROD || !authed) return;
   dirty = true; clearTimeout(pushTimer); pushTimer = setTimeout(push, 120);
@@ -657,6 +658,18 @@ const LS_KEY = 'cjcc-demo-db';
 function apply(d){ const n = normalize(d); if (!n) return; const prev = db; db = n; subs.forEach(fn => { try { fn(prev, db); } catch(e){ console.warn(e); } }); }
 function blankDoc(){ return normalize(seedProduction('Owner')); }
 db = PROD ? blankDoc() : seed();
+
+/* Appearance: manager picks a theme in Rules (settings.theme); cached on this device so pages open in the right colors. */
+const THEME_BG = {cream:'#f7f0e4', white:'#f4f4f2', sun:'#fcefc7', cool:'#eceff3', dark:'#16110d'};
+function applyTheme(t){
+  if (!THEME_BG[t]) t = 'cream';
+  const h = document.documentElement;
+  if (t === 'dark') h.removeAttribute('data-theme'); else h.setAttribute('data-theme', t);
+  const m = document.querySelector('meta[name=theme-color]'); if (m) m.setAttribute('content', THEME_BG[t]);
+}
+function syncTheme(){ const t = db && db.settings && db.settings.theme; if (t && THEME_BG[t]){ applyTheme(t); ls.set('cjcc-theme', t); } }
+subs.push(() => syncTheme());
+syncTheme();
 let deviceKey = ls.get('cjcc-device');
 if (!deviceKey){ deviceKey = 'dev-' + Math.random().toString(36).slice(2,10) + Date.now().toString(36).slice(-4); ls.set('cjcc-device', deviceKey); }
 const ready = (async () => {
@@ -928,7 +941,7 @@ const deviceEmp = () => PROD ? (session && session.role === 'crew' ? session.emp
 
 window.CC = {
   KEY, ic, P, VTYPE, LOCS, COLORS, MIN, HR, DAY,
-  get db(){ return db; }, ready, isOnline, hasServer: !!API, PROD, auth, files, admin, seedProduction, pushNow: () => push(), pull: () => pullNow(true), save, reset, id, log, subscribe: fn => subs.push(fn),
+  get db(){ return db; }, applyTheme, THEMES: Object.keys(THEME_BG), ready, isOnline, hasServer: !!API, PROD, auth, files, admin, seedProduction, pushNow: () => push(), pull: () => pullNow(true), save, reset, id, log, subscribe: fn => subs.push(fn),
   now, startOfDay, at, fTime, fDate, fDay, fShort, fDur, fHM, fHrs, money, esc, pad, toDateInput, toTimeInput, fromInputs, initialsOf,
   dist, bearing, fDist, venueActive, periodStart, periodLen, empById, venueById, workedMs, liveFor, summary, punchIssues,
   DEFAULT_SETTINGS, breakStatus, nextBreakFor, shiftFor, tagByCode, newTagCode, tagUrl, crewAppBase, deviceEmp, get deviceKey(){ return deviceKey; },

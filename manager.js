@@ -606,6 +606,9 @@ function pRules(){
         <label class="field"><span>Manager name</span><input class="input" id="st-managerName" value="${esc(s.managerName)}"></label>
         ${CC.PROD ? '' : `<label class="field"><span>Manager PIN (4 digits)</span><input class="input num" id="st-managerPin" inputmode="numeric" maxlength="4" value="${esc(s.managerPin)}"></label>`}
       </div></section>
+    <section class="card"><h3 class="card-h">Appearance</h3>
+      <p class="small muted" style="margin-bottom:10px">Background colors for the crew app, manager console, tablet board and job application. Applies to everyone after you save.</p>
+      <div class="theme-pick">${[['cream','Warm Cream','#f7f0e4'],['white','Clean White','#f4f4f2'],['sun','Sunny Mustard','#fcefc7'],['cool','Cool Grey','#eceff3'],['dark','Original Dark','#16110d']].map(([k,l,c]) => `<label class="theme-opt"><input type="radio" name="st-theme" value="${k}" ${(s.theme||'cream')===k?'checked':''}><span class="theme-sw" style="background:${c}"></span><span>${l}</span></label>`).join('')}</div></section>
     ${accountCard()}
   </div>
   <div class="row" style="justify-content:flex-end;gap:8px;margin-top:16px;position:sticky;bottom:0;padding:12px 0;background:linear-gradient(transparent,var(--bg) 30%)">
@@ -1270,7 +1273,7 @@ document.addEventListener('click', ev => {
         earlyMin:n('earlyMin'), lateGrace:n('lateGrace'), autoClockOutHrs:n('autoClockOutHrs'), paydayLag:n('paydayLag'), periodDays:parseInt(val('st-periodDays'))||14, payAnchor:val('st-payAnchor')||s.payAnchor,
         mealPremium:chk('st-mealPremium'), blockEarly:chk('st-blockEarly'), allowUnscheduled:chk('st-allowUnscheduled'), allowWeakGps:chk('st-allowWeakGps'), allowExceptions:chk('st-allowExceptions'), requireSelfie:chk('st-requireSelfie'),
         managerName:val('st-managerName').trim()||s.managerName, ...(CC.PROD ? {} : {managerPin:pin}),
-        breakWarnMin:n('breakWarnMin'), breakLateMin:n('breakLateMin'), allowNfc:chk('st-allowNfc'), allowKiosk:chk('st-allowKiosk'), nfcPairing:chk('st-nfcPairing'), nfcSelfie:chk('st-nfcSelfie'), crewAppUrl:val('st-crewAppUrl').trim(),
+        breakWarnMin:n('breakWarnMin'), breakLateMin:n('breakLateMin'), allowNfc:chk('st-allowNfc'), allowKiosk:chk('st-allowKiosk'), nfcPairing:chk('st-nfcPairing'), nfcSelfie:chk('st-nfcSelfie'), crewAppUrl:val('st-crewAppUrl').trim(), theme:(document.querySelector('input[name=st-theme]:checked')||{}).value || s.theme || 'cream',
         breakPlan:[...document.querySelectorAll('#bpRows .bp-row')].map(r => { const kind = r.querySelector('.bp-kind').value, min = parseFloat(r.querySelector('.bp-min').value)||10;
           return {kind, label:r.querySelector('.bp-label').value.trim() || (kind==='meal' ? 'Lunch break' : `${min}-min break`), min, at:parseFloat(r.querySelector('.bp-at').value)||0, minShift:parseFloat(r.querySelector('.bp-ms').value)||0}; }).sort((a,b)=>a.at-b.at)};
       if (next.crewAppUrl && !/^https?:\/\//i.test(next.crewAppUrl)){ toast('Crew app address must start with https://'); return; }
