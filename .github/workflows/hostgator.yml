@@ -39,7 +39,16 @@ jobs:
         run: |
           sudo apt-get -qq update >/dev/null && sudo apt-get -qq install -y lftp >/dev/null
           DIR="${FTP_DIR:-/}"
-          lftp -u "$FTP_USERNAME","$FTP_PASSWORD" "$FTP_SERVER" <<EOF
+          # HostGator's FTP certificate is issued to the server's own name (e.g. gatorXXXX.hostgator.com).
+          # Read that name from the certificate and connect with it, as long as it's the same machine.
+          HOST="$FTP_SERVER"
+          CN=$(echo | timeout 20 openssl s_client -connect "$FTP_SERVER:21" -starttls ftp 2>/dev/null | openssl x509 -noout -subject -nameopt multiline 2>/dev/null | awk -F' = ' '/commonName/{print $2}' | sed 's/^\*\.//')
+          if [ -n "$CN" ]; then
+            A=$(getent ahostsv4 "$FTP_SERVER" | awk '{print $1; exit}'); B=$(getent ahostsv4 "$CN" | awk '{print $1; exit}')
+            echo "Certificate name: $CN"
+            if [ -n "$A" ] && [ "$A" = "$B" ]; then HOST="$CN"; else echo "::warning::Certificate name points to a different address; keeping FTP_SERVER."; fi
+          fi
+          lftp -u "$FTP_USERNAME","$FTP_PASSWORD" "$HOST" <<EOF
           set ftp:ssl-force true
           set ftp:ssl-protect-data true
           set ssl:verify-certificate true
