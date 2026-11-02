@@ -53,6 +53,12 @@ jobs:
               case "$PTR" in *."$CN") C=$(getent ahostsv4 "$PTR" | awk '{print $1; exit}'); [ "$C" = "$A" ] && HOST="$PTR";; esac
             fi
           fi
+          # If that server isn't the one hosting cjwtbk.com, use the website's own server name instead.
+          W=$(getent ahostsv4 cjwtbk.com | awk '{print $1; exit}'); H=$(getent ahostsv4 "$HOST" | awk '{print $1; exit}')
+          if [ -n "$W" ] && [ "$H" != "$W" ]; then
+            WP=$(getent hosts "$W" | awk '{print $2; exit}'); echo "Website server name: ${WP:-unknown}"
+            case "$WP" in *.hostgator.com) [ "$(getent ahostsv4 "$WP" | awk '{print $1; exit}')" = "$W" ] && HOST="$WP" && echo "Using the website's server instead.";; esac
+          fi
           [ "$HOST" = "$FTP_SERVER" ] && echo "::warning::Couldn't match the certificate; set FTP_SERVER to the server name shown in cPanel (for example gator1234.hostgator.com)."
           echo "FTP server address: $(getent ahostsv4 "$HOST" | awk '{print $1; exit}') / website address: $(getent ahostsv4 cjwtbk.com | awk '{print $1; exit}')"
           echo "Username looks like: $(echo "$FTP_USERNAME" | sed -E 's/^(.).*@/\1***@/') (length ${#FTP_USERNAME}), password length ${#FTP_PASSWORD}"
