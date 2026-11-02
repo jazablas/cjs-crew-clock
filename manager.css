@@ -310,3 +310,4 @@ td.sc:hover .add-cell,.add-cell:focus-visible{opacity:1;border-color:var(--line)
 .m-body .li .grow .title{overflow-wrap:anywhere}
 .m-body .li .grow .badge{white-space:normal;height:auto;line-height:1.3;padding-top:3px;padding-bottom:3px;text-align:left}
 .m-body .li .grow .row{flex-wrap:wrap}
+.app-card .meta{font-size:12.5px;color:var(--muted);margin-top:2px}

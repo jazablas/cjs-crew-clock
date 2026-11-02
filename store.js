@@ -641,6 +641,7 @@ const admin = {
   unlock: (id) => call('/admin/unlock', {method:'POST', json:{id}}),
   punchHistory: (id) => call('/admin/punch-history?id=' + encodeURIComponent(id)),
   audit: () => call('/admin/audit'),
+  application: (id) => call('/admin/application?id=' + encodeURIComponent(id)),
   async backup(){
     const r = await call('/admin/backup'); if (!r.ok) return r;
     const blob = new Blob([JSON.stringify(r, null, 1)], {type:'application/json'});

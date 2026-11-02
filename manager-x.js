@@ -374,7 +374,7 @@ function pHiring(){
   <div class="cards">${jobs.filter(j => M.jobQ==='all' || j.id===M.jobQ).map(j => `<article class="req"><div class="row between"><div><div class="title" style="font-size:15px">${esc(j.title)}</div><div class="meta">${esc(venue(j.venue).name)} · ${esc(j.type)} · ${money(j.rate)}/hr</div></div>${badge(j.status, j.status==='Open'?'ok':'')}</div><p class="req-d">${esc(j.desc)}</p>
     <div class="row" style="justify-content:flex-end;gap:6px;flex-wrap:wrap"><button class="btn sm" data-act="job-link" data-v="${j.id}">${ic('copy')} Copy apply link</button><a class="btn sm" href="apply.html?job=${j.id}" target="_blank" rel="noopener">${ic('ext')} Preview</a><button class="btn sm" data-act="job-toggle" data-v="${j.id}">${j.status==='Open'?'Close':'Reopen'}</button></div></article>`).join('')}</div>
   <div class="pipe">${STAGES.map(st => `<section class="pipe-col"><div class="label">${st} <b>${apps.filter(a=>a.stage===st).length}</b></div>${apps.filter(a=>a.stage===st).sort((a,b)=>b.t-a.t).map(a => { const j = jobs.find(x=>x.id===a.job); return `
-    <article class="app-card"><div class="title" style="font-size:14px">${esc(a.name)}</div><div class="meta">${esc(j?.title||'')} · applied ${fShort(a.t)}</div>${a.note?`<div class="small" style="margin-top:4px">${esc(a.note)}</div>`:''}<div class="meta">${esc(a.phone)}${a.email?` · ${esc(a.email)}`:''}</div>${a.resume ? `<div class="row" style="gap:6px;margin-top:6px"><button class="btn sm" data-act="doc-view" data-v="${esc(a.resume.id)}">${ic('doc')} Resume</button><button class="btn sm" data-act="doc-dl" data-v="${esc(a.resume.id)}">${ic('download')}</button></div>` : ''}
+    <article class="app-card"><div class="title" style="font-size:14px">${esc(a.name)}</div><div class="meta">${esc(j?.title||'')} · applied ${fShort(a.t)}</div>${a.note?`<div class="small" style="margin-top:4px">${esc(a.note)}</div>`:''}<div class="meta">${esc(fmtPhoneX(a.phone))}${a.email?` · ${esc(a.email)}`:''}</div>${a.full ? `<div class="row" style="gap:6px;margin-top:6px"><button class="btn sm primary" data-act="app-view" data-v="${esc(a.id)}">${ic('doc')} Full application</button></div>` : ''}${a.resume ? `<div class="row" style="gap:6px;margin-top:6px"><button class="btn sm" data-act="doc-view" data-v="${esc(a.resume.id)}">${ic('doc')} Resume</button><button class="btn sm" data-act="doc-dl" data-v="${esc(a.resume.id)}">${ic('download')}</button></div>` : ''}
       ${a.interview && a.stage==='Interview' ? `<div class="meta" style="color:var(--info)">Interview ${fDate(a.interview)} ${fTime(a.interview)}</div>` : ''}
       <div class="row" style="gap:6px;margin-top:8px;flex-wrap:wrap">${st==='Applied'?`<button class="btn sm" data-act="app-int" data-v="${a.id}">Interview</button>`:''}${st==='Interview'?`<button class="btn sm" data-act="app-move" data-v="${a.id}" data-s="Offer">Make offer</button>`:''}${st==='Offer'?`<button class="btn sm primary" data-act="app-hire" data-v="${a.id}">Hire</button>`:''}${st!=='Hired'?`<button class="btn sm" data-act="app-move" data-v="${a.id}" data-s="Rejected">Pass</button>`:''}</div>
     </article>`; }).join('') || '<div class="small faint" style="padding:8px">None</div>'}</section>`).join('')}</div>
@@ -661,4 +661,46 @@ X.PAGES.find(p=>p[0]==='tips')[1] = 'jar';
 /* ---------- Background: shift reminders ---------- */
 setInterval(() => { if (CC.runReminders()) CC.save(); }, 30000);
 CC.ready.then(() => { if (CC.runReminders()) CC.save(); });
+/* ---------- Full employment application (live mode) ---------- */
+const AP_SLOTS = {am:'Morning', pm:'Afternoon', eve:'Evening'};
+function appHtml(a, f){
+  const r = (k, v) => v ? `<div class="ap-r"><span>${esc(k)}</span><b>${esc(v)}</b></div>` : '';
+  const sec = (t, body) => body ? `<section class="ap-sec"><h4>${t}</h4>${body}</section>` : '';
+  const days = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
+  const grid = f.avail ? `<table class="ap-av"><thead><tr><th></th>${days.map(d=>`<th>${d}</th>`).join('')}</tr></thead><tbody>${Object.entries(AP_SLOTS).map(([s,l]) => `<tr><th>${l}</th>${days.map(d => `<td>${(f.avail[d]||[]).includes(s) ? '&#10003;' : ''}</td>`).join('')}</tr>`).join('')}</tbody></table>` : '';
+  return `
+  ${sec('Position', r('Job', f.jobTitle) + r('Looking for', f.type) + r('Earliest start', f.start) + r('Hours a week', f.hours))}
+  ${sec('Contact', r('Name', f.name) + r('Mobile', fmtPhoneX(f.phone)) + r('Email', f.email) + r('Address', [f.street, f.city, f.zip].filter(Boolean).join(', ')) + r('Best way to reach', f.contact) + r('18 or older', f.adult) + r('Allowed to work in US', f.workAuth))}
+  ${sec('Availability', grid + r('Event days', f.events) + r('Reliable ride', f.transport) + r('Notes', f.availNote))}
+  ${sec('Work experience', f.noExp ? r('Experience', 'None yet') : (f.jobs||[]).map(j => `<div class="ap-job"><b>${esc(j.title||'')} · ${esc(j.employer||'')}</b><div class="muted small">${esc([j.city, j.from && `${fmtMonthX(j.from)} to ${j.current ? 'present' : (fmtMonthX(j.to)||'?')}`].filter(Boolean).join(' · '))}</div>${j.duties?`<p>${esc(j.duties)}</p>`:''}${j.why?`<p class="muted small">${j.current?'Why looking':'Why left'}: ${esc(j.why)}</p>`:''}<p class="small">May contact: <b>${esc(j.contact||'')}</b></p></div>`).join(''))}
+  ${sec('Skills & certificates', r('Food Handler card', [f.foodCard, f.foodCardExp && `expires ${fmtMonthX(f.foodCardExp)}`].filter(Boolean).join(', ')) + r('Skills', (f.skills||[]).join(', ')))}
+  ${sec('References', (f.refs||[]).map(x => r(x.name, [x.rel, x.phone].filter(Boolean).join(' · '))).join('') || r('References', 'None given'))}
+  ${sec('More', r('School', [f.schoolLevel, f.school].filter(Boolean).join(' · ')) + r('Heard about us', [f.heard, f.heardOther].filter(Boolean).join(': ')) + (f.extra ? `<p style="margin-top:6px">${esc(f.extra)}</p>` : ''))}
+  ${sec('Signature', r('Certified true and complete', f.certify ? 'Yes' : 'No') + `<div class="ap-r"><span>Signed</span><b class="ap-sig">${esc(f.signature||'')}</b></div>` + r('Date', f.signedAt ? new Date(f.signedAt).toLocaleString('en-US') : ''))}`;
+}
+function fmtMonthX(s){ const m = /^(\d{4})-(\d{2})$/.exec(s || ''); return m ? new Date(+m[1], +m[2] - 1, 1).toLocaleDateString('en-US', {month: 'short', year: 'numeric'}) : (s || ''); }
+function fmtPhoneX(s){ const d = String(s||'').replace(/\D/g,'').replace(/^1(?=\d{10}$)/,''); return d.length===10 ? `(${d.slice(0,3)}) ${d.slice(3,6)}-${d.slice(6)}` : (s||''); }
+const AP_CSS = `.ap-sec{margin-top:14px}.ap-sec h4{font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted,#777);margin:0 0 4px}
+.ap-r{display:flex;justify-content:space-between;gap:16px;padding:6px 0;border-top:1px solid var(--line,#ddd);font-size:14px}.ap-r span{color:var(--muted,#666);flex:none}.ap-r b{font-weight:600;text-align:right}
+.ap-job{padding:8px 0;border-top:1px solid var(--line,#ddd)}.ap-job p{margin:4px 0 0;font-size:14px}
+.ap-av{border-collapse:collapse;width:100%;table-layout:fixed;margin:4px 0 6px;font-size:13px}.ap-av th,.ap-av td{border:1px solid var(--line,#ddd);padding:4px;text-align:center}.ap-av tbody th{text-align:left;font-weight:600}
+.ap-sig{font-family:'Brush Script MT','Segoe Script',cursive;font-size:20px}`;
+let AP_CACHE = {};
+EXT.acts['app-view'] = (el, v) => { appView(v); return false; };
+async function appView(v){
+  const a = D().applicants.find(x => x.id === v); if (!a) return;
+  openModal(`${mHead(esc(a.name), 'Loading application…')}`, true);
+  const r = AP_CACHE[v] || await CC.admin.application(v);
+  if (!r.ok){ openModal(`${mHead(esc(a.name))}<p class="muted" style="margin-top:10px">${esc(r.error || 'Couldn’t load the application.')}</p>`); return; }
+  AP_CACHE[v] = r;
+  openModal(`<style>${AP_CSS}</style>${mHead(esc(a.name), `Employment application · submitted ${new Date(r.created_at).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'})}`)}
+    <div style="max-height:62vh;overflow:auto;padding-right:4px">${appHtml(a, r.application)}</div>
+    <div class="row" style="gap:8px;justify-content:flex-end;margin-top:14px;flex-wrap:wrap">${a.resume ? `<button class="btn sm" data-act="doc-view" data-v="${esc(a.resume.id)}">${ic('doc')} Resume</button>` : ''}<button class="btn sm" data-act="app-print" data-v="${esc(v)}">${ic('download')} Print or save PDF</button><button class="btn sm primary" data-act="close">Done</button></div>`, true);
+}
+EXT.acts['app-print'] = (el, v) => {
+  const a = D().applicants.find(x => x.id === v), r = AP_CACHE[v]; if (!a || !r) return false;
+  const w = window.open('', '_blank'); if (!w){ toast('Allow pop-ups to print'); return false; }
+  w.document.write(`<!doctype html><html><head><meta charset="utf-8"><title>Application · ${esc(a.name)}</title><style>body{font-family:Arial,Helvetica,sans-serif;color:#111;max-width:760px;margin:28px auto;padding:0 18px}h1{font-size:22px;margin:0}h2{font-size:14px;color:#555;font-weight:400;margin:4px 0 0}${AP_CSS}.muted{color:#666}.small{font-size:12.5px}@media print{.ap-sec{break-inside:avoid}}</style></head><body><h1>Employment application · ${esc(a.name)}</h1><h2>CJ&rsquo;s Wings · submitted ${new Date(r.created_at).toLocaleString('en-US')} · confidential</h2>${appHtml(a, r.application)}<script>setTimeout(()=>print(),300)<\/script></body></html>`);
+  w.document.close(); return false;
+};
 })();

@@ -28,6 +28,25 @@ body{display:block;min-height:100vh;background:radial-gradient(1200px 500px at 5
 .ap .done{margin-top:28px;text-align:center;padding:30px 18px;border:1px solid var(--line);border-radius:20px;background:var(--surface)}
 .ap .done svg{width:52px;height:52px;color:var(--ok)}
 .ap .done h2{font-family:var(--display);font-weight:800;font-size:34px;text-transform:uppercase;margin-top:8px}
+.ap .ic-s svg{width:20px;height:20px;color:var(--mustard)}
+html{background:var(--bg)}
+.ap-prog{margin:22px 0 4px}.ap-prog .prog{margin-top:8px;height:6px}
+.ap-h{font-family:var(--display);font-weight:800;font-size:28px;text-transform:uppercase;margin:18px 0 12px}
+.ap-h3{font-family:var(--display);font-weight:800;font-size:20px;text-transform:uppercase;margin:22px 0 8px}
+.ap-card{padding:14px;margin-top:12px;display:block}.ap-card b{font-size:15px}
+.ap-nav{display:flex;justify-content:space-between;gap:10px;margin-top:22px}.ap-nav .btn{flex:1;max-width:240px}.ap-nav .btn.primary{margin-left:auto}
+.seg{display:flex;gap:8px}.seg button{flex:1;min-height:46px;border-radius:12px;border:1px solid var(--line);background:var(--surface);color:var(--text);font:inherit;font-weight:600;cursor:pointer}
+.seg button.on{border-color:var(--sauce);background:rgba(210,58,31,.14);color:#fff}
+.av-grid{display:grid;grid-template-columns:52px repeat(3,1fr);gap:6px;align-items:center;margin-bottom:14px}
+.av-h{font-size:12px;color:var(--muted);text-align:center;font-weight:600}.av-d{font-weight:700;font-size:14px}
+.av-c{height:42px;border-radius:10px;border:1px solid var(--line);background:var(--surface);color:#fff;cursor:pointer;display:grid;place-items:center}
+.av-c.on{background:var(--sauce);border-color:var(--sauce)}.av-c svg{width:18px;height:18px}
+.chips-wrap{display:flex;flex-wrap:wrap;gap:8px}
+.chip-t{padding:9px 13px;border-radius:999px;border:1px solid var(--line);background:var(--surface);color:var(--text);font:inherit;font-size:14px;cursor:pointer}
+.chip-t.on{border-color:var(--sauce);background:rgba(210,58,31,.14)}
+.rv-r{display:flex;justify-content:space-between;gap:14px;padding:7px 0;border-top:1px solid var(--line);font-size:14px}.rv-r span{color:var(--muted);flex:none}.rv-r b{font-weight:600;font-size:14px !important;text-align:right}
+.sig{font-family:'Brush Script MT','Segoe Script',cursive;font-size:22px}
+em.faint{font-style:normal}
 .ap footer{margin-top:30px;color:var(--faint);font-size:12.5px;text-align:center}
 </style>
 </head>
@@ -36,6 +55,7 @@ body{display:block;min-height:100vh;background:radial-gradient(1200px 500px at 5
 <div id="toast" class="toast" role="status"></div>
 <script>window.__CC_ROLE__ = 'public';</script><script src="config.js"></script>
 <script src="store.js"></script>
+<script src="apply.js"></script>
 <script>
 (() => {
 'use strict';
@@ -82,7 +102,7 @@ function validate(){
   if (!document.getElementById('apAge').checked){ toast('Please confirm your age'); return null; }
   return {name, phone, email, avail:v('apAvail'), note:v('apNote'), job:document.querySelector('input[name=job]:checked').value};
 }
-async function renderProd(){
+async function renderProd(){ if (window.CC_APPLY_START) return window.CC_APPLY_START();
   if (!PJ){ try { const r = await fetch(API + '/public/jobs', {cache:'no-store'}); PJ = await r.json(); } catch(e){ root.innerHTML = '<p class="muted">Couldn’t load jobs. Check your connection and refresh.</p>'; return; } }
   const jobs = PJ.jobs || [];
   if (!jobs.length){ root.innerHTML = `<h1>Work at <span>CJ&rsquo;s</span></h1><p class="lead">We&rsquo;re not hiring right now. Check back soon, or stop by the Pico Blvd kitchen and say hi.</p>`; return; }
