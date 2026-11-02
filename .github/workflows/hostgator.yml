@@ -81,7 +81,15 @@ jobs:
           set net:max-retries 3
           set net:timeout 30
           set cmd:fail-exit true
-          mirror --reverse --only-newer --no-perms --parallel=4 --verbose=1 --exclude-glob .git* --exclude-glob .github/ --exclude-glob README.md ./ "$DIR"
+          echo "--- FTP folder contents:"
+          cls -1aF /
+          echo "--- parent:"
+          cls -1aF ..
+          echo "---"
+          set cmd:fail-exit false
+          rm -rf "${DIR%/}/.git"
+          set cmd:fail-exit true
+          mirror --reverse --only-newer --no-perms --parallel=4 --verbose=1 --exclude-glob .git* --exclude-glob .git/ --exclude-glob .github/ --exclude-glob .nojekyll --exclude-glob README.md ./ "$DIR"
           bye
           EOF
       - name: Check the live site
