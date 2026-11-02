@@ -31,19 +31,25 @@ jobs:
         if: steps.chk.outputs.ready == 'yes'
       - name: Upload to HostGator
         if: steps.chk.outputs.ready == 'yes'
-        uses: SamKirkland/FTP-Deploy-Action@v4.3.5
-        with:
-          server: ${{ secrets.FTP_SERVER }}
-          username: ${{ secrets.FTP_USERNAME }}
-          password: ${{ secrets.FTP_PASSWORD }}
-          protocol: ftps
-          port: 21
-          server-dir: ${{ secrets.FTP_DIR || './' }}
-          exclude: |
-            **/.git*
-            **/.git*/**
-            .github/**
-            README.md
+        env:
+          FTP_SERVER: ${{ secrets.FTP_SERVER }}
+          FTP_USERNAME: ${{ secrets.FTP_USERNAME }}
+          FTP_PASSWORD: ${{ secrets.FTP_PASSWORD }}
+          FTP_DIR: ${{ secrets.FTP_DIR }}
+        run: |
+          sudo apt-get -qq update >/dev/null && sudo apt-get -qq install -y lftp >/dev/null
+          DIR="${FTP_DIR:-/}"
+          lftp -u "$FTP_USERNAME","$FTP_PASSWORD" "$FTP_SERVER" <<EOF
+          set ftp:ssl-force true
+          set ftp:ssl-protect-data true
+          set ssl:verify-certificate true
+          set ftp:passive-mode true
+          set net:max-retries 3
+          set net:timeout 30
+          set cmd:fail-exit true
+          mirror --reverse --only-newer --no-perms --parallel=4 --verbose=1 --exclude-glob .git* --exclude-glob .github/ --exclude-glob README.md ./ "$DIR"
+          bye
+          EOF
       - name: Check the live site
         if: steps.chk.outputs.ready == 'yes'
         run: |
