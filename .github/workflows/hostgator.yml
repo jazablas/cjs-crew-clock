@@ -65,7 +65,7 @@ jobs:
             for port in 587 25 465 21; do
               if [ "$port" = 465 ]; then BN=$(echo QUIT | timeout 10 openssl s_client -quiet -connect "$A:465" 2>/dev/null | head -1)
               else BN=$(timeout 10 bash -c "exec 3<>/dev/tcp/$A/$port; head -1 <&3" 2>/dev/null); fi
-              N=$(echo "$BN" | grep -oiE '[a-z0-9.-]+\.'"$CN" | head -1)
+              N=$(echo "$BN" | grep -oiE '[a-z][a-z0-9-]*(\.[a-z0-9-]+)*\.'"$CN" | head -1)
               echo "Port $port says: ${N:-nothing useful}"
               if [ -n "$N" ] && [ "$(getent ahostsv4 "$N" | awk '{print $1; exit}')" = "$A" ]; then HOST="$N"; echo "Using server name $N"; break; fi
             done
