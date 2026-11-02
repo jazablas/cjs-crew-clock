@@ -117,6 +117,7 @@ function renderLogin(){
         <button class="key fn" data-act="key" data-v="del">Delete</button>
       </div>
       <p class="small faint" style="margin-top:18px;max-width:300px">Forgot your PIN? Ask your manager to reset it. Five wrong tries locks sign-in for 15 minutes.</p>
+      <p class="small faint" style="margin-top:8px"><a href="privacy.html" style="color:inherit">Privacy notice</a> · <a href="guide.html" style="color:inherit">Crew guide</a></p>
     </div>`;
 }
 function renderConsent(){
@@ -539,6 +540,7 @@ function renderMe(){
     <div class="card small muted">
       ${ic('shield','" style="width:18px;height:18px;color:var(--mustard);float:left;margin:2px 10px 0 0')}
       We use your location only to confirm you&rsquo;re at a venue when you punch, and to check you&rsquo;re still on site while you&rsquo;re on the clock. No tracking off the clock. Punch photos and GPS points are kept with your time records for payroll and audits.
+      <div class="row" style="gap:8px;flex-wrap:wrap;margin-top:10px;clear:both"><a class="btn sm" href="privacy.html" target="_blank" rel="noopener">${ic('shield')} Full privacy notice</a><a class="btn sm" href="privacy.html#request" target="_blank" rel="noopener">${ic('doc')} Copy or delete my data</a><a class="btn sm" href="guide.html" target="_blank" rel="noopener">${ic('list')} Crew guide</a></div>
     </div>
     <button class="btn" style="margin-top:16px" data-act="signout">${ic('out')} Sign out</button>
     <p class="small faint" style="text-align:center;margin-top:12px">CJ&rsquo;s Crew - Clock · ${CC.PROD ? 'version 1.0' : 'prototype v0.5'}</p>`;

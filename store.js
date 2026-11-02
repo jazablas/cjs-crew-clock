@@ -636,6 +636,12 @@ const files = {
   },
   async remove(docId){ return call('/docs?id=' + encodeURIComponent(docId), {method:'DELETE'}); },
 };
+const demoPrivacy = [];
+/* Anyone (applicant, crew, former crew) can ask for a copy, a correction or deletion of their data. */
+function privacyRequest(b){
+  if (!API){ demoPrivacy.unshift({id:'PR-' + Math.random().toString(36).slice(2,8), ...b, status:'open', created_at:new Date().toISOString()}); return Promise.resolve({ok:true, demo:true}); }
+  return call('/privacy/request', {method:'POST', json:b, noSignout:true});
+}
 const admin = {
   accounts: () => call('/admin/accounts'),
   saveAccount: (a) => call('/admin/account', {method:'POST', json:a}),
@@ -643,6 +649,9 @@ const admin = {
   punchHistory: (id) => call('/admin/punch-history?id=' + encodeURIComponent(id)),
   audit: () => call('/admin/audit'),
   application: (id) => call('/admin/application?id=' + encodeURIComponent(id)),
+  privacy: () => API ? call('/admin/privacy') : Promise.resolve({ok:true, requests: demoPrivacy}),
+  privacyUpdate: (id, status, note) => { if (!API){ const r = demoPrivacy.find(x=>x.id===id); if (r){ r.status = status; r.note = note; r.done_at = new Date().toISOString(); } return Promise.resolve({ok:true}); } return call('/admin/privacy', {method:'POST', json:{id, status, note}}); },
+  eraseApplicant: (id) => { if (!API){ db.applicants = (db.applicants||[]).filter(a=>a.id!==id); save(); return Promise.resolve({ok:true, files:0}); } return call('/admin/erase-applicant', {method:'POST', json:{id}}); },
   async backup(){
     const r = await call('/admin/backup'); if (!r.ok) return r;
     const blob = new Blob([JSON.stringify(r, null, 1)], {type:'application/json'});
@@ -941,7 +950,7 @@ const deviceEmp = () => PROD ? (session && session.role === 'crew' ? session.emp
 
 window.CC = {
   KEY, ic, P, VTYPE, LOCS, COLORS, MIN, HR, DAY,
-  get db(){ return db; }, applyTheme, THEMES: Object.keys(THEME_BG), ready, isOnline, hasServer: !!API, PROD, auth, files, admin, seedProduction, pushNow: () => push(), pull: () => pullNow(true), save, reset, id, log, subscribe: fn => subs.push(fn),
+  get db(){ return db; }, privacyRequest, applyTheme, THEMES: Object.keys(THEME_BG), ready, isOnline, hasServer: !!API, PROD, auth, files, admin, seedProduction, pushNow: () => push(), pull: () => pullNow(true), save, reset, id, log, subscribe: fn => subs.push(fn),
   now, startOfDay, at, fTime, fDate, fDay, fShort, fDur, fHM, fHrs, money, esc, pad, toDateInput, toTimeInput, fromInputs, initialsOf,
   dist, bearing, fDist, venueActive, periodStart, periodLen, empById, venueById, workedMs, liveFor, summary, punchIssues,
   DEFAULT_SETTINGS, breakStatus, nextBreakFor, shiftFor, tagByCode, newTagCode, tagUrl, crewAppBase, deviceEmp, get deviceKey(){ return deviceKey; },
@@ -951,3 +960,8 @@ window.CC = {
   runFor, listProgress, checklistsFor, docState, docTypesFor, coursesFor,
 };
 })();
+
+/* Installable app + works on a weak signal (see sw.js). Only on the real https site. */
+if ('serviceWorker' in navigator && location.protocol === 'https:' && !/pplx\.app$/.test(location.hostname)){
+  window.addEventListener('load', () => { navigator.serviceWorker.register('sw.js').catch(() => {}); });
+}

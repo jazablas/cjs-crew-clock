@@ -1,0 +1,121 @@
+<!doctype html>
+<html lang="en" data-theme="cream">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#f7f0e4">
+<title>Crew guide · CJ's Crew - Clock</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700&family=Big+Shoulders+Display:wght@700;800;900&display=swap" rel="stylesheet">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="icon" href="icons/favicon-32.png" sizes="32x32" type="image/png">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<link rel="stylesheet" href="styles.css">
+<link rel="stylesheet" href="theme.css">
+<script>(function(){var t='cream';try{t=window['local'+'Storage'].getItem('cjcc-theme')||'cream'}catch(e){}var c={cream:'#f7f0e4',white:'#f4f4f2',sun:'#fcefc7',cool:'#eceff3',dark:'#16110d'};if(!c[t])t='cream';var h=document.documentElement;if(t==='dark')h.removeAttribute('data-theme');else h.setAttribute('data-theme',t);var m=document.querySelector('meta[name=theme-color]');if(m)m.setAttribute('content',c[t]);})();</script>
+<style>
+body{min-height:100vh}
+.gd-page{max-width:820px;margin:0 auto;padding:22px 18px 50px}
+.gd-top{display:flex;justify-content:space-between;align-items:flex-start;gap:16px}
+.gd-kick{font-family:var(--display);font-weight:800;letter-spacing:.06em;text-transform:uppercase;font-size:13px;color:var(--muted)}
+.gd-page h1{font-family:var(--display);font-weight:900;font-size:46px;line-height:.95;text-transform:uppercase;margin:4px 0 6px}
+.gd-page h1 span{color:var(--sauce)}
+.gd-qr{text-align:center;flex:none}
+.gd-qr .q{width:118px;height:118px;background:#fff;padding:8px;border-radius:12px;border:1px solid var(--line)}
+.gd-qr .q svg{width:100%;height:100%;display:block}
+.gd-qr div{font-size:12px;font-weight:700;margin-top:4px}
+.gd-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:14px}
+.gd-box{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:12px 14px;break-inside:avoid}
+.gd-box h2{display:flex;align-items:center;gap:8px;font-family:var(--display);font-weight:800;font-size:21px;text-transform:uppercase;letter-spacing:.03em;margin:0 0 6px}
+.gd-box h2 i{font-style:normal;display:inline-grid;place-items:center;width:26px;height:26px;border-radius:50%;background:var(--sauce);color:#fff;font-family:var(--body);font-size:14px;font-weight:800}
+.gd-box ul{margin:0;padding-left:18px}
+.gd-box li{font-size:14px;line-height:1.45;margin:3px 0}
+.gd-box .sub{font-weight:700;font-size:13px;margin-top:6px}
+.gd-red{color:var(--bad);font-weight:800}
+.gd-foot{margin-top:12px;font-size:12.5px;color:var(--muted);display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap}
+.gd-bar{display:flex;gap:8px;justify-content:flex-end;margin-bottom:12px}
+@media (max-width:640px){.gd-grid{grid-template-columns:1fr}.gd-page h1{font-size:36px}.gd-qr .q{width:96px;height:96px}}
+@media print{
+  @page{size:letter;margin:.4in}
+  html,body{background:#fff !important}
+  .gd-bar{display:none}
+  .gd-page{padding:0;max-width:none}
+  .gd-page h1{font-size:38px}
+  .gd-box{background:#fff;border-color:#bbb;padding:9px 11px}
+  .gd-box li{font-size:12.2px;line-height:1.35;margin:2px 0}
+  .gd-box h2{font-size:18px}
+  .gd-grid{gap:8px;margin-top:10px}
+  *{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+}
+</style>
+</head>
+<body>
+<main class="gd-page">
+  <div class="gd-bar"><a class="btn sm" href="index.html">Open the app</a><button class="btn sm primary" type="button" onclick="print()">Print this guide</button></div>
+  <div class="gd-top">
+    <div>
+      <div class="gd-kick">CJ's &middot; The Broaster Kings</div>
+      <h1>Crew <span>guide</span></h1>
+      <div style="font-size:15px">CJ's Crew - Clock: clock in, take breaks, see your schedule.</div>
+      <div style="font-size:15px;margin-top:4px">App address: <b id="gdUrl">cjwtbk.com</b></div>
+    </div>
+    <div class="gd-qr"><div class="q" id="gdQr" aria-label="QR code to open the app"></div><div>Scan to open</div></div>
+  </div>
+
+  <div class="gd-grid">
+    <section class="gd-box"><h2><i>1</i> Install the app</h2>
+      <div class="sub">iPhone (Safari)</div>
+      <ul><li>Scan the code or go to the address above.</li><li>Tap Share <b>&#x2191;</b>, then <b>Add to Home Screen</b>, then <b>Add</b>.</li></ul>
+      <div class="sub">Android (Chrome)</div>
+      <ul><li>Open the address, then tap <b>Install</b> when asked, or go to Menu <b>&#8942;</b> and tap <b>Install app</b>.</li></ul>
+      <ul><li>Open CJ's Crew from its icon on your home screen from now on.</li></ul>
+    </section>
+    <section class="gd-box"><h2><i>2</i> Sign in</h2>
+      <ul><li>Your manager adds you with your mobile number and gives you a <b>6-digit PIN</b>.</li>
+        <li>Enter your number, then your PIN. Turn on <b>Keep me signed in</b> on your own phone.</li>
+        <li>Never share your PIN. Five wrong tries locks sign-in for 15 minutes.</li>
+        <li>Forgot it? Ask a manager to reset it.</li></ul>
+    </section>
+    <section class="gd-box"><h2><i>3</i> Clock in</h2>
+      <ul><li><b>Tap the sticker:</b> unlock your phone and hold the top of it to the CJ's sticker at your venue.</li>
+        <li><b>Or</b> open the app and tap <b>Clock in</b>. Allow location; it only works at the venue.</li>
+        <li>Take the quick selfie when asked. It proves it's you.</li>
+        <li><b>No phone?</b> Use the wall tablet: tap Clock in, then enter your PIN.</li></ul>
+    </section>
+    <section class="gd-box"><h2><i>4</i> Breaks</h2>
+      <ul><li>The app tells you when a <b>10-minute</b>, <b>15-minute</b> or <b>meal break</b> is due.</li>
+        <li>On the crew board, a name in <span class="gd-red">red</span> means that person's break is due. Check it, even without your phone.</li>
+        <li>Tap <b>Start break</b> and <b>End break</b>, or tap the sticker, so your time is right.</li>
+        <li>Missed a break because it was busy? Tell a manager the same day.</li></ul>
+    </section>
+    <section class="gd-box"><h2><i>5</i> Clock out</h2>
+      <ul><li>Tap the sticker again or tap <b>Clock out</b> in the app, before you change or leave.</li>
+        <li>Check your hours anytime in <b>Timesheet</b>.</li></ul>
+      <div class="sub">Made a mistake?</div>
+      <ul><li>Forgot to punch? Use <b>Missed punch</b> on the Clock screen.</li>
+        <li>Wrong time? Open it in Timesheet and tap <b>Request a correction</b>. A manager approves it.</li></ul>
+    </section>
+    <section class="gd-box"><h2><i>6</i> Schedule &amp; more</h2>
+      <ul><li><b>Schedule:</b> see your shifts, confirm them, offer a swap or pick up open shifts.</li>
+        <li><b>Availability &amp; time off:</b> set them in the app. Your manager approves requests.</li>
+        <li><b>Team:</b> chat and announcements from managers.</li>
+        <li><b>Me:</b> your pay rates, documents and the privacy notice.</li></ul>
+    </section>
+  </div>
+  <div class="gd-foot"><span>Questions or app trouble? Ask your shift lead or manager.</span><span>Privacy notice: <span id="gdPriv">cjwtbk.com/privacy.html</span></span></div>
+</main>
+<script src="qrcode.min.js"></script>
+<script>
+(function(){
+  var base = location.protocol === 'file:' ? 'https://cjwtbk.com/' : location.href.replace(/[#?].*$/, '').replace(/[^/]*$/, '');
+  var url = base + 'index.html', pretty = base.replace(/^https?:\/\//, '').replace(/\/$/, '');
+  document.getElementById('gdUrl').textContent = pretty;
+  document.getElementById('gdPriv').textContent = pretty + '/privacy.html';
+  try { var q = qrcode(0, 'M'); q.addData(url); q.make(); document.getElementById('gdQr').innerHTML = q.createSvgTag({cellSize: 4, margin: 0, scalable: true}); } catch (e) {}
+  if ('serviceWorker' in navigator && location.protocol === 'https:') navigator.serviceWorker.register('sw.js').catch(function(){});
+})();
+</script>
+</body>
+</html>

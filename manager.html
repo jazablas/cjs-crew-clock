@@ -8,13 +8,20 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700&family=Big+Shoulders+Display:wght@700;800;900&display=swap" rel="stylesheet">
+<link rel="manifest" href="manager.webmanifest">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="icon" href="icons/favicon-32.png" sizes="32x32" type="image/png">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="CJ's Manager">
 <link rel="stylesheet" href="styles.css">
 <link rel="stylesheet" href="manager.css">
 <link rel="stylesheet" href="theme.css">
 <script>(function(){var t='cream';try{t=window['local'+'Storage'].getItem('cjcc-theme')||'cream'}catch(e){}var c={cream:'#f7f0e4',white:'#f4f4f2',sun:'#fcefc7',cool:'#eceff3',dark:'#16110d'};if(!c[t])t='cream';var h=document.documentElement;if(t==='dark')h.removeAttribute('data-theme');else h.setAttribute('data-theme',t);var m=document.querySelector('meta[name=theme-color]');if(m)m.setAttribute('content',c[t]);})();</script>
 
-  <link rel="icon" href="favicon.svg" type="image/svg+xml">
-</head>
+  </head>
 <body class="mgr">
 <div id="mroot"></div>
 <div id="modalRoot"></div>
@@ -23,5 +30,7 @@
   <script src="store.js"></script>
 <script src="manager.js"></script>
 <script src="manager-x.js"></script>
+<script src="manager-privacy.js"></script>
+<script src="install.js" defer></script>
 </body>
 </html>

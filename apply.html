@@ -8,11 +8,18 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700&family=Big+Shoulders+Display:wght@700;800;900&display=swap" rel="stylesheet">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="icon" href="icons/favicon-32.png" sizes="32x32" type="image/png">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="CJ's Crew">
 <link rel="stylesheet" href="styles.css">
 <link rel="stylesheet" href="theme.css">
 <script>(function(){var t='cream';try{t=window['local'+'Storage'].getItem('cjcc-theme')||'cream'}catch(e){}var c={cream:'#f7f0e4',white:'#f4f4f2',sun:'#fcefc7',cool:'#eceff3',dark:'#16110d'};if(!c[t])t='cream';var h=document.documentElement;if(t==='dark')h.removeAttribute('data-theme');else h.setAttribute('data-theme',t);var m=document.querySelector('meta[name=theme-color]');if(m)m.setAttribute('content',c[t]);})();</script>
 
-<link rel="icon" href="favicon.svg" type="image/svg+xml">
 <style>
 body{display:block;min-height:100vh;background:radial-gradient(1200px 500px at 50% -10%,rgba(210,58,31,.18),transparent 60%),var(--bg)}
 .ap{max-width:620px;margin:0 auto;padding:36px 18px 60px}
@@ -39,11 +46,11 @@ html{background:var(--bg)}
 .ap-card{padding:14px;margin-top:12px;display:block}.ap-card b{font-size:15px}
 .ap-nav{display:flex;justify-content:space-between;gap:10px;margin-top:22px}.ap-nav .btn{flex:1;max-width:240px}.ap-nav .btn.primary{margin-left:auto}
 .seg{display:flex;gap:8px}.seg button{flex:1;min-height:46px;border-radius:12px;border:1px solid var(--line);background:var(--surface);color:var(--text);font:inherit;font-weight:600;cursor:pointer}
-.seg button.on{border-color:var(--sauce);background:rgba(210,58,31,.14);color:#fff}
+.seg button.on{border-color:var(--sauce);background:rgba(210,58,31,.14);color:var(--text)}
 .av-grid{display:grid;grid-template-columns:52px repeat(3,1fr);gap:6px;align-items:center;margin-bottom:14px}
 .av-h{font-size:12px;color:var(--muted);text-align:center;font-weight:600}.av-d{font-weight:700;font-size:14px}
-.av-c{height:42px;border-radius:10px;border:1px solid var(--line);background:var(--surface);color:#fff;cursor:pointer;display:grid;place-items:center}
-.av-c.on{background:var(--sauce);border-color:var(--sauce)}.av-c svg{width:18px;height:18px}
+.av-c{height:42px;border-radius:10px;border:1px solid var(--line);background:var(--surface);color:var(--text);cursor:pointer;display:grid;place-items:center}
+.av-c.on{background:var(--sauce);border-color:var(--sauce);color:#fff}.av-c svg{width:18px;height:18px}
 .chips-wrap{display:flex;flex-wrap:wrap;gap:8px}
 .chip-t{padding:9px 13px;border-radius:999px;border:1px solid var(--line);background:var(--surface);color:var(--text);font:inherit;font-size:14px;cursor:pointer}
 .chip-t.on{border-color:var(--sauce);background:rgba(210,58,31,.14)}

@@ -1,0 +1,53 @@
+# Uploads the app to HostGator (cjwtbk.com) every time it's updated.
+# Needs three repository secrets: FTP_SERVER, FTP_USERNAME, FTP_PASSWORD
+# (optional FTP_DIR, e.g. "public_html/" if the FTP login opens one level above the website folder).
+name: Deploy to HostGator
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+concurrency:
+  group: hostgator
+  cancel-in-progress: false
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Check the HostGator login is set up
+        id: chk
+        env:
+          S: ${{ secrets.FTP_SERVER }}
+          U: ${{ secrets.FTP_USERNAME }}
+          P: ${{ secrets.FTP_PASSWORD }}
+        run: |
+          if [ -z "$S" ] || [ -z "$U" ] || [ -z "$P" ]; then
+            echo "::warning::HostGator FTP secrets are not set yet. Skipping upload."
+            echo "ready=no" >> "$GITHUB_OUTPUT"
+          else
+            echo "ready=yes" >> "$GITHUB_OUTPUT"
+          fi
+      - uses: actions/checkout@v4
+        if: steps.chk.outputs.ready == 'yes'
+      - name: Upload to HostGator
+        if: steps.chk.outputs.ready == 'yes'
+        uses: SamKirkland/FTP-Deploy-Action@v4.3.5
+        with:
+          server: ${{ secrets.FTP_SERVER }}
+          username: ${{ secrets.FTP_USERNAME }}
+          password: ${{ secrets.FTP_PASSWORD }}
+          protocol: ftps
+          port: 21
+          server-dir: ${{ secrets.FTP_DIR || './' }}
+          exclude: |
+            **/.git*
+            **/.git*/**
+            .github/**
+            README.md
+      - name: Check the live site
+        if: steps.chk.outputs.ready == 'yes'
+        run: |
+          sleep 5
+          for u in https://cjwtbk.com/ https://cjwtbk.com/sw.js https://cjwtbk.com/manifest.webmanifest; do
+            echo "$u -> $(curl -s -o /dev/null -w '%{http_code}' "$u")"
+          done
