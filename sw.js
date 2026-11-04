@@ -1,8 +1,8 @@
 /* CJ's Crew - Clock service worker: makes the app installable and lets screens open on a weak signal.
    Pages and code always come fresh from the network when it's available (so updates show right away);
    the saved copy is used only when the phone is offline. Server data (Supabase) is never cached here. */
-const VERSION = 'cc-2026-11-02c';
-const CORE = ['./', './index.html', './manager.html', './display.html', './apply.html', './privacy.html', './guide.html', './labels.html',
+const VERSION = 'cc-2026-11-04a';
+const CORE = ['./', './index.html', './manager.html', './display.html', './apply.html', './privacy.html', './guide.html', './handbook.html', './labels.html',
   './styles.css', './theme.css', './manager.css', './display.css', './labels.css',
   './config.js', './store.js', './app.js', './app-x.js', './manager.js', './manager-x.js', './manager-privacy.js', './display.js', './labels.js', './apply.js', './qrcode.min.js', './install.js',
   './favicon.svg', './icons/icon-192.png', './icons/icon-512.png', './icons/apple-touch-icon.png',

@@ -1,0 +1,223 @@
+<!doctype html>
+<html lang="en" data-theme="cream">
+<head>
+<script>if(location.hostname==="jazablas.github.io"){location.replace("https://cjwtbk.com/"+location.pathname.replace(/^\/cjs-crew-clock\/?/,"")+location.search+location.hash)}</script>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#f7f0e4">
+<title>Crew handbook · CJ's Crew - Clock</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700&family=Big+Shoulders+Display:wght@700;800;900&display=swap" rel="stylesheet">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="icon" href="icons/favicon-32.png" sizes="32x32" type="image/png">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="CJ's Crew">
+<link rel="stylesheet" href="styles.css">
+<link rel="stylesheet" href="theme.css">
+<script>(function(){var t='cream';try{t=window['local'+'Storage'].getItem('cjcc-theme')||'cream'}catch(e){}var c={cream:'#f7f0e4',white:'#f4f4f2',sun:'#fcefc7',cool:'#eceff3',dark:'#16110d'};if(!c[t])t='cream';var h=document.documentElement;if(t==='dark')h.removeAttribute('data-theme');else h.setAttribute('data-theme',t);var m=document.querySelector('meta[name=theme-color]');if(m)m.setAttribute('content',c[t]);})();</script>
+<style>
+body{min-height:100vh}
+.pv{max-width:780px;margin:0 auto;padding:28px 18px 60px;line-height:1.6}
+.pv h1{font-family:var(--display);font-weight:900;font-size:48px;line-height:1;text-transform:uppercase;letter-spacing:.01em;margin:6px 0 6px}
+.pv h1 span{color:var(--sauce)}
+.pv h2{font-family:var(--display);font-weight:800;font-size:25px;text-transform:uppercase;letter-spacing:.03em;margin:34px 0 8px;display:flex;align-items:center;gap:10px}
+.pv h2 .n{display:inline-grid;place-items:center;min-width:30px;height:30px;border-radius:50%;background:var(--sauce);color:#fff;font-size:16px;letter-spacing:0}
+.pv h3{font-size:16px;margin:16px 0 4px}
+.pv p,.pv li{color:var(--text);font-size:15.5px}
+.pv ul{padding-left:20px;margin:6px 0}
+.pv li{margin:3px 0}
+.pv .kick{font-family:var(--display);font-weight:800;letter-spacing:.06em;text-transform:uppercase;font-size:14px;color:var(--muted)}
+.pv table{width:100%;border-collapse:collapse;font-size:14.5px;margin:8px 0}
+.pv th,.pv td{text-align:left;vertical-align:top;padding:9px 10px;border-bottom:1px solid var(--line)}
+.pv th{font-size:12px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted)}
+.pv .toc{display:flex;flex-wrap:wrap;gap:8px;margin:14px 0 4px}
+.pv .toc a{font-size:13.5px;font-weight:600;border:1px solid var(--line);border-radius:999px;padding:5px 12px;color:var(--text);text-decoration:none;background:var(--surface)}
+.pv .note{background:var(--surface);border:1px solid var(--line);border-left:4px solid var(--sauce);border-radius:12px;padding:12px 14px;margin:12px 0}
+.pv .sm{font-size:13px;color:var(--muted)}
+.pv .src a{color:var(--muted)}
+.pv .bar{display:flex;gap:8px;flex-wrap:wrap;margin:12px 0}
+.pv .bar a{text-decoration:none}
+.pv .sig{border:1px solid var(--line);border-radius:16px;padding:18px;background:var(--surface);margin-top:10px}
+.pv .sig .ln{display:grid;grid-template-columns:1fr 1fr;gap:26px;margin-top:26px}
+.pv .sig .ln div{border-top:1.5px solid var(--text);padding-top:4px;font-size:12.5px;color:var(--muted)}
+@media (max-width:560px){.pv h1{font-size:38px}.pv .sig .ln{grid-template-columns:1fr}}
+@media print{
+  .noprint{display:none!important}
+  html,body{background:#fff!important}
+  .pv{max-width:none;padding:0}
+  .pv p,.pv li,.pv td{font-size:11pt;color:#111}
+  .pv h2{break-after:avoid;margin-top:22px}
+  .pv h2 .n{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+  .pv .note,.pv .sig,.pv table{break-inside:avoid}
+  #sign{break-before:page}
+  .pv .toc{display:none}
+  @page{margin:16mm 15mm}
+}
+</style>
+</head>
+<body>
+<main class="pv">
+  <a href="index.html" class="kick" style="text-decoration:none">CJ's &middot; The Broaster Kings</a>
+  <h1>Crew <span>handbook</span></h1>
+  <p class="sm">For everyone who works at CJ's Wings &mdash; The Broaster Kings. Last updated November 4, 2026.</p>
+  <div class="bar noprint">
+    <button class="btn sm" onclick="window.print()">Print or save as PDF</button>
+    <a class="btn sm" href="guide.html">Crew guide (app how-to)</a>
+    <a class="btn sm" href="index.html">Open the app</a>
+  </div>
+  <nav class="toc noprint" aria-label="On this page">
+    <a href="#welcome">Welcome</a><a href="#respect">Respect</a><a href="#start">Getting started</a><a href="#schedule">Schedules</a><a href="#clock">Time clock</a><a href="#breaks">Breaks</a><a href="#pay">Pay</a><a href="#sick">Sick leave</a><a href="#food">Food safety</a><a href="#safety">Kitchen safety</a><a href="#look">Uniform</a><a href="#conduct">Conduct</a><a href="#minors">Under 18</a><a href="#leaving">Leaving</a><a href="#sign">Sign</a>
+  </nav>
+
+  <h2 id="welcome"><span class="n">1</span>Welcome to the crew</h2>
+  <p>Welcome to CJ's. We're known for broasted chicken, wings and Boss Sauce. That reputation comes from a crew that shows up on time, keeps the kitchen clean and treats every guest like a regular. This handbook covers how we work together: schedules, the time clock, breaks, pay, safety and what we expect from each other.</p>
+  <p>Day-to-day tasks like clocking in, breaks, your schedule and pay stubs happen in the <b>CJ's Crew - Clock</b> app at <b>cjwtbk.com</b>. The <a href="guide.html">crew guide</a> shows you how to use it.</p>
+  <div class="note"><b>About this handbook.</b> This handbook is a guide, not a contract. Your job is "at will," which means you or CJ's can end the job at any time, with or without a reason or notice. We may update the handbook and will post changes in the app. Where federal, California or Los Angeles law gives you more than this handbook does, the law wins. Questions? Ask your shift lead or manager.</div>
+
+  <h2 id="respect"><span class="n">2</span>Respect and equal opportunity</h2>
+  <ul>
+    <li>CJ's hires, schedules, pays and promotes based on the work, never on race, color, religion, sex, gender identity or expression, sexual orientation, pregnancy, national origin, ancestry, age, disability, medical condition, genetic information, marital status, military or veteran status, or any other status protected by law.</li>
+    <li>We don't allow harassment of any kind, by anyone: managers, crew, guests or vendors. That includes unwanted touching, sexual comments or jokes, slurs, threats and bullying.</li>
+    <li><b>Speak up.</b> Tell any manager or the owner, in person, by text or in the app. If the problem is with your manager, go straight to the owner. We'll look into every report promptly and keep it as private as we can.</li>
+    <li><b>No retaliation.</b> Nobody will be punished for reporting a problem, asking about pay or breaks, or taking part in an investigation in good faith.</li>
+    <li>If you need an accommodation for a disability, pregnancy or religious practice, ask your manager and we'll work it out together.</li>
+  </ul>
+
+  <h2 id="start"><span class="n">3</span>Getting started</h2>
+  <ul>
+    <li><b>Paperwork.</b> On or before your first day, complete your I-9 (proof you can work in the U.S.) and your W-4 and DE 4 tax forms. You can upload documents securely in the app under <b>Me &rarr; Documents</b>.</li>
+    <li><b>Food handler card.</b> California requires every food handler to get a California Food Handler Card within 30 days of being hired and keep it valid; cards last three years (<a href="https://leginfo.legislature.ca.gov/faces/codes_displaySection.xhtml?sectionNum=113948&amp;lawCode=HSC" target="_blank" rel="noopener">Cal. Health &amp; Safety Code 113948</a>). <b>CJ's pays for the course and exam and pays you for the time it takes.</b> Your manager will schedule it during a shift. Upload a photo of your card in the app when you pass.</li>
+    <li><b>App sign-in.</b> Your manager adds you to the app with your mobile number and gives you a 6-digit PIN. Don't share your PIN, and don't let anyone else use your account.</li>
+    <li><b>Training.</b> Your first shifts are paired with a trainer. Don't run the broaster, slicer or fryers until a manager has signed you off on them.</li>
+  </ul>
+
+  <h2 id="schedule"><span class="n">4</span>Schedules, time off and calling out</h2>
+  <ul>
+    <li>Schedules are posted in the app, usually about two weeks ahead. Check the app before every shift and tap <b>Confirm</b> on new shifts.</li>
+    <li><b>Availability.</b> Keep your availability current in the app. We'll do our best to schedule around school, family and other jobs.</li>
+    <li><b>Time off.</b> Request it in the app as early as you can, ideally two weeks ahead. A request isn't approved until a manager approves it in the app.</li>
+    <li><b>Shift swaps.</b> You can offer a shift or pick up an open one in the app. Swaps need manager approval. Until a swap is approved, the shift is still yours.</li>
+    <li><b>Running late or calling out.</b> Call or text your manager as soon as you know, and at least 2 hours before your shift when you can. A message in team chat alone doesn't count. Not showing up without telling anyone (a "no call, no show") is serious and can lead to losing your job.</li>
+    <li>If a shift is cancelled or cut short, California's reporting-time pay rules may apply. Your manager will handle it in the app.</li>
+  </ul>
+
+  <h2 id="clock"><span class="n">5</span>The time clock</h2>
+  <ul>
+    <li><b>Clock in when you start working, and clock out when you stop.</b> Tap the NFC sticker at the venue, use <b>Clock in</b> in the app, or use the crew tablet. The app records the time, your location at that moment and, when it's asked for, a quick selfie.</li>
+    <li>Clock in no more than a few minutes before your shift unless a manager asks you to start early.</li>
+    <li><b>Never work off the clock.</b> Every minute you work gets paid, including prep, closing duties, cleaning, training and answering work calls or texts. If anyone asks you to work off the clock, tell the owner.</li>
+    <li><b>Only clock yourself.</b> Clocking in or out for someone else, or asking someone to do it for you, is time theft. Both people can lose their jobs.</li>
+    <li><b>Forgot to punch, or the time is wrong?</b> Use <b>Missed punch</b> or <b>Request a correction</b> in the app the same day. A manager reviews and approves it, and the app keeps a record of every change.</li>
+    <li>Check your hours under <b>Timesheet</b> before the pay period closes. Tell a manager right away if anything looks wrong.</li>
+  </ul>
+
+  <h2 id="breaks"><span class="n">6</span>Breaks and meal periods</h2>
+  <p>California law protects your breaks, and so do we. The crew app and the tablet board tell you when a break is due. If your name shows in <b style="color:var(--sauce)">red</b> on the board, your break is due now. Go take it, and a lead will cover you.</p>
+  <table>
+    <thead><tr><th style="width:30%">Break</th><th>The rule</th></tr></thead>
+    <tbody>
+      <tr><td><b>Rest breaks</b><br><span class="sm">paid, stay clocked in</span></td><td>At least 10 minutes net for every 4 hours you work, or major fraction of 4 hours (more than 2 hours counts), taken near the middle of the work period when practical. No rest break is required if you work less than 3&frac12; hours that day (<a href="https://www.dir.ca.gov/dlse/faq_restperiods.htm" target="_blank" rel="noopener">California DIR</a>). Our break plan sometimes schedules a longer, 15-minute paid break; the app shows which one you're due for.</td></tr>
+      <tr><td><b>Meal break</b><br><span class="sm">unpaid, clock out</span></td><td>A duty-free, uninterrupted 30-minute meal break if you work more than 5 hours, starting no later than the end of your 5th hour. If your whole shift is 6 hours or less, you and your manager may agree in writing to skip it (<a href="https://www.dir.ca.gov/dlse/faq_mealperiods.htm" target="_blank" rel="noopener">California DIR</a>).</td></tr>
+      <tr><td><b>Second meal break</b></td><td>A second 30-minute meal break if you work more than 10 hours, starting no later than the end of your 10th hour. It can be waived only if the shift is 12 hours or less and the first meal wasn't waived (<a href="https://www.dir.ca.gov/dlse/faq_mealperiods.htm" target="_blank" rel="noopener">California DIR</a>).</td></tr>
+    </tbody>
+  </table>
+  <ul>
+    <li>During your meal break you're off duty: no work and no "just one order." You're free to leave the building. If a manager needs you to stay on site or keep working, the meal break must be paid.</li>
+    <li>Tap <b>Start break</b> and <b>End break</b> in the app, or tap the sticker, so your breaks are recorded correctly.</li>
+    <li><b>Missed, late or cut short?</b> Tell a manager and note it in the app when you clock out. If we don't provide a required rest or meal break, California law requires one extra hour of pay at your regular rate for each workday it happens (<a href="https://www.dir.ca.gov/dlse/faq_mealperiods.htm" target="_blank" rel="noopener">California DIR</a>). You'll never get in trouble for reporting a missed break.</li>
+    <li>If you're nursing, ask for a private lactation space and break time. We'll provide both.</li>
+  </ul>
+
+  <h2 id="pay"><span class="n">7</span>Pay, overtime and tips</h2>
+  <ul>
+    <li><b>Pay schedule.</b> You're paid every two weeks. Payday is a few days after each pay period ends, and the app shows the exact dates under <b>Timesheet</b>. Your pay stub lists your hours, rate, overtime, tips, sick time and deductions.</li>
+    <li><b>Minimum wage.</b> We pay at least the City of Los Angeles minimum wage, which is $18.42 an hour as of July 1, 2026 and is adjusted every July 1 (<a href="https://wagesla.lacity.gov/" target="_blank" rel="noopener">Wages LA</a>).</li>
+    <li><b>Overtime.</b> 1&frac12; times your regular rate for hours over 8 in a workday or over 40 in a workweek, and for the first 8 hours on a 7th straight day of work. Double time for hours over 12 in a workday and over 8 on a 7th straight day (<a href="https://www.dir.ca.gov/dlse/FAQ_Overtime.htm" target="_blank" rel="noopener">California DIR</a>). Overtime is paid whether or not it was approved in advance. Even so, please check with a manager before staying late.</li>
+    <li><b>Tips.</b> Tips belong to the crew. Managers and owners don't keep any. When tips are pooled, they're shared among eligible crew using the method posted in the app, which is usually hours worked. You can see your share on your timesheet.</li>
+    <li><b>Pay problems.</b> If your pay looks short or wrong, tell a manager or the owner right away and we'll fix it on the next check or sooner.</li>
+  </ul>
+
+  <h2 id="sick"><span class="n">8</span>Paid sick leave</h2>
+  <ul>
+    <li>Under the Los Angeles Minimum Wage Ordinance, you earn 1 hour of paid sick leave for every 30 hours you work, or receive at least 48 hours at the start of each year. You can use it starting on your 90th day of work (<a href="https://wagesla.lacity.gov/" target="_blank" rel="noopener">Wages LA</a>).</li>
+    <li>You can use up to 48 hours a year. Unused hours carry over to the next year, up to a cap of at least 72 hours (<a href="https://wagesla.lacity.gov/" target="_blank" rel="noopener">Wages LA</a>). Where California law gives you more, you get the greater amount.</li>
+    <li>Use it when you or a family member is sick, needs care or has a medical appointment, or for other reasons the law allows. You can ask out loud or in writing. Tell us as early as you can, but you don't need to bring a doctor's note for a short absence.</li>
+    <li>Your sick-leave balance is shown on your pay stub.</li>
+  </ul>
+
+  <h2 id="food"><span class="n">9</span>Food safety and hygiene</h2>
+  <ul>
+    <li><b>Wash your hands</b> with soap and warm water for at least 20 seconds when you start a shift, after the restroom, after handling raw chicken, after touching your face, phone, money or trash, and before putting on gloves.</li>
+    <li>Wear gloves for ready-to-eat food. Change them between tasks, and always after handling raw chicken.</li>
+    <li>Keep raw chicken away from cooked food and produce. Follow the posted cook temperatures and holding times. Label and date everything.</li>
+    <li><b>Don't work sick.</b> If you have vomiting, diarrhea, jaundice (yellow skin or eyes), or a sore throat with a fever, stay home and tell your manager. Tell us too if you've been diagnosed with a foodborne illness. You can use paid sick leave.</li>
+    <li>Cover any cut or burn on your hands with a bandage and a glove.</li>
+    <li>Eat and drink only in the break area, from a covered cup with a lid and straw.</li>
+  </ul>
+
+  <h2 id="safety"><span class="n">10</span>Kitchen safety</h2>
+  <ul>
+    <li><b>Broaster and fryers.</b> Only trained crew run the pressure fryer. Never open it under pressure. Never leave hot oil unattended. Filter and change oil only after it has cooled, wearing the protective gear we provide.</li>
+    <li>Wear non-slip shoes, clean up spills right away, and put out a wet-floor sign.</li>
+    <li>Call out "behind," "hot" and "sharp" when you move around the kitchen.</li>
+    <li>Lift with your legs. Ask for help with anything heavy, like oil jugs and cases of chicken.</li>
+    <li><b>Got hurt?</b> Tell a manager right away, even if it seems small. Get first aid, and get medical care if you need it. CJ's carries workers' compensation insurance, which covers work injuries.</li>
+    <li>Know where the fire extinguisher, first-aid kit and exits are. In an emergency, get out first. Don't stay to save food or money.</li>
+    <li>If anyone threatens you or a robbery happens, don't resist. Hand over what they ask for, stay safe and call 911 when it's safe.</li>
+  </ul>
+
+  <h2 id="look"><span class="n">11</span>Uniform and appearance</h2>
+  <ul>
+    <li>Wear a clean CJ's shirt or the uniform your manager gives you, with dark pants or shorts that look clean and neat.</li>
+    <li>Wear closed-toe, non-slip shoes. No sandals or canvas shoes in the kitchen.</li>
+    <li>Tie back long hair, and wear a hat or hair restraint while you handle food.</li>
+    <li>Keep jewelry simple: no rings with stones, watches or bracelets while you prep food (a plain band is fine). Keep nails short and clean.</li>
+    <li>If you need to adjust the uniform for religious, medical or disability reasons, just ask.</li>
+  </ul>
+
+  <h2 id="conduct"><span class="n">12</span>Conduct on the job</h2>
+  <ul>
+    <li><b>Guests come first.</b> Greet people, be friendly and get a manager when a guest is upset.</li>
+    <li><b>Phones.</b> Use your phone for the app (clocking in, breaks and your schedule) and for emergencies. Personal calls, social media and games wait for your break. Never use your phone at the fryer or the prep table.</li>
+    <li><b>Cash and discounts.</b> Ring up every order. Count your drawer at the start and end of your shift. Only managers can approve comps, voids and discounts. Taking money, food or supplies without permission is theft.</li>
+    <li><b>Crew meals.</b> Ask a manager about the current crew meal and discount policy. Ring up all crew food.</li>
+    <li><b>Drugs and alcohol.</b> Don't come to work impaired, and don't use, sell or have alcohol or drugs (including cannabis) at work.</li>
+    <li><b>No violence or weapons</b> at work.</li>
+    <li><b>Social media.</b> You have the right to talk about pay and working conditions. Please don't post guest information, recipes or anything that puts someone's safety at risk.</li>
+    <li>If expectations aren't met, we'll usually start with a conversation and a written note in your file. Serious problems like theft, violence, harassment or a no call, no show can lead to losing your job right away.</li>
+  </ul>
+
+  <h2 id="minors"><span class="n">13</span>Crew under 18</h2>
+  <ul>
+    <li>You need a valid work permit from your school before you can work. Give a copy to your manager or upload it in the app.</li>
+    <li>California limits how many hours and how late minors can work, and the limits are stricter on school days. Your manager schedules within those limits, and the app warns managers before a shift breaks them.</li>
+    <li>Crew under 18 may not run the slicer, the pressure fryer or other equipment the law restricts for minors.</li>
+  </ul>
+
+  <h2 id="privacy"><span class="n">14</span>Your information</h2>
+  <p>The app keeps your schedule, punches, pay details and documents secure. Only managers who need them can see them. The <a href="privacy.html">privacy notice</a> explains what we collect and why, and how to ask for a copy of your information or have it deleted.</p>
+
+  <h2 id="leaving"><span class="n">15</span>If you leave CJ's</h2>
+  <ul>
+    <li>If you quit, we appreciate two weeks' notice so we can cover your shifts.</li>
+    <li>Return your uniform, keys and any CJ's equipment.</li>
+    <li>You'll get your final pay on the schedule California law requires. That includes all hours worked and tips owed.</li>
+    <li>You can still see your pay stubs and download your records from the app for a while after you leave. You can also ask a manager for copies.</li>
+  </ul>
+
+  <p class="sm src" style="margin-top:28px">Sources for the legal rules above: <a href="https://www.dir.ca.gov/dlse/faq_restperiods.htm" target="_blank" rel="noopener">DIR rest periods</a> · <a href="https://www.dir.ca.gov/dlse/faq_mealperiods.htm" target="_blank" rel="noopener">DIR meal periods</a> · <a href="https://www.dir.ca.gov/dlse/FAQ_Overtime.htm" target="_blank" rel="noopener">DIR overtime</a> · <a href="https://wagesla.lacity.gov/" target="_blank" rel="noopener">Wages LA minimum wage &amp; sick leave</a> · <a href="https://leginfo.legislature.ca.gov/faces/codes_displaySection.xhtml?sectionNum=113948&amp;lawCode=HSC" target="_blank" rel="noopener">Cal. Health &amp; Safety Code 113948</a>. Laws change; the required workplace posters in the break room always have the current rules.</p>
+
+  <h2 id="sign"><span class="n">16</span>Acknowledgment</h2>
+  <div class="sig">
+    <p>I received the CJ's Wings &mdash; The Broaster Kings Crew Handbook. I understand it's my responsibility to read it and ask questions if anything is unclear. I understand the handbook isn't a contract, my job is at will, and CJ's may update these policies.</p>
+    <div class="ln"><div>Crew member name (print)</div><div>Signature</div></div>
+    <div class="ln"><div>Date</div><div>Manager</div></div>
+  </div>
+</main>
+</body>
+</html>
