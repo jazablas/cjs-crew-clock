@@ -73,22 +73,26 @@ jobs:
           [ "$HOST" = "$FTP_SERVER" ] && echo "::warning::Couldn't match the certificate; set FTP_SERVER to the server name shown in cPanel (for example gator1234.hostgator.com)."
           echo "FTP server address: $(getent ahostsv4 "$HOST" | awk '{print $1; exit}') / website address: $(getent ahostsv4 cjwtbk.com | awk '{print $1; exit}')"
           echo "Username looks like: $(echo "$FTP_USERNAME" | sed -E 's/^(.).*@/\1***@/') (length ${#FTP_USERNAME}), password length ${#FTP_PASSWORD}"
+          SET="set ftp:ssl-force true; set ftp:ssl-protect-data true; set ssl:verify-certificate true; set ftp:passive-mode true; set net:max-retries 3; set net:timeout 30"
+          ROOT=$(lftp -u "$FTP_USERNAME","$FTP_PASSWORD" "$HOST" -e "$SET; cls -1aF /; bye")
+          CLEAN=""
+          if [ -z "$FTP_DIR" ] && echo "$ROOT" | grep -qx '/public_html/'; then
+            # The FTP account opens in the main hosting folder; the website lives in its cjwtbk.com folder.
+            if echo "$ROOT" | grep -qx '/cjwtbk.com/'; then DIR=/cjwtbk.com/; echo "FTP opens in the main hosting folder; uploading to /cjwtbk.com/"; else echo "::error::Couldn't find the cjwtbk.com website folder"; exit 1; fi
+            # Remove app files that an earlier run put in the main folder by mistake (only our own files).
+            if echo "$ROOT" | grep -qx '/manager-privacy.js'; then
+              for f in $(git ls-files | grep -vE '^(\.git|README.md|demo/|icons/)'); do CLEAN="$CLEAN; rm -f /$f"; done
+              CLEAN="$CLEAN; rm -rf /demo /icons"; echo "Cleaning up app files from the main hosting folder"
+            fi
+          fi
           lftp -u "$FTP_USERNAME","$FTP_PASSWORD" "$HOST" <<EOF
-          set ftp:ssl-force true
-          set ftp:ssl-protect-data true
-          set ssl:verify-certificate true
-          set ftp:passive-mode true
-          set net:max-retries 3
-          set net:timeout 30
-          set cmd:fail-exit true
-          echo "--- FTP folder contents:"
-          cls -1aF /
-          echo "--- parent:"
-          cls -1aF ..
-          echo "---"
+          $SET
           set cmd:fail-exit false
+          ${CLEAN#; }
           rm -rf "${DIR%/}/.git"
           set cmd:fail-exit true
+          echo "--- website folder before upload:"
+          cls -1aF "$DIR"
           mirror --reverse --only-newer --no-perms --parallel=4 --verbose=1 --exclude-glob .git* --exclude-glob .git/ --exclude-glob .github/ --exclude-glob .nojekyll --exclude-glob README.md ./ "$DIR"
           bye
           EOF
