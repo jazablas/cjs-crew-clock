@@ -1087,6 +1087,13 @@ document.addEventListener('click', async ev => {
   const sc2 = document.getElementById('scroll'); if (sc2 && act !== 'tab') sc2.scrollTop = top;
 });
 
+/* Redraw for new data without losing scroll position, a half-typed message or the open keyboard. */
+function bgRender(){
+  const sc = document.getElementById('scroll'), top = sc ? sc.scrollTop : 0;
+  const inChat = !!document.querySelector('.cmsgs'), atEnd = sc ? sc.scrollHeight - sc.scrollTop - sc.clientHeight < 60 : false;
+  CC.keepForm(render);
+  const s2 = document.getElementById('scroll'); if (s2) s2.scrollTop = (inChat && atEnd && document.querySelector('.cmsgs')) ? s2.scrollHeight : top;
+}
 /* ---------- Live ticking ---------- */
 let lastMin = -1;
 setInterval(() => {
@@ -1103,7 +1110,7 @@ setInterval(() => {
     }
   });
   const m = Math.floor(n/MIN);
-  if (m !== lastMin && !sheetRoot.innerHTML){ lastMin = m; const sc = document.getElementById('scroll'); const top = sc?sc.scrollTop:0; render(); const s2=document.getElementById('scroll'); if(s2) s2.scrollTop=top; }
+  if (m !== lastMin && !sheetRoot.innerHTML){ lastMin = m; bgRender(); }
 }, 1000);
 
 /* ---------- Sync with the manager console (other tabs) ---------- */
@@ -1118,7 +1125,7 @@ CC.subscribe((prev, next) => {
     if (done) toast(`${done.kind} ${done.status.toLowerCase()}`);
   }
   if (sheetRoot.innerHTML && !S.shift && document.getElementById('confirmHrs')) closeSheet();
-  if (!sheetRoot.innerHTML){ const sc = document.getElementById('scroll'); const top = sc?sc.scrollTop:0; render(); const s2=document.getElementById('scroll'); if(s2) s2.scrollTop=top; }
+  if (!sheetRoot.innerHTML) bgRender();
   else renderDemo();
 });
 

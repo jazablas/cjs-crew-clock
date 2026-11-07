@@ -96,7 +96,7 @@ const fDay = t => new Date(t).toLocaleDateString('en-US',{weekday:'long',month:'
 const fShort = t => new Date(t).toLocaleDateString('en-US',{month:'short',day:'numeric'});
 const fDur = ms => { ms = Math.max(0,ms); const h = Math.floor(ms/HR), m = Math.floor(ms%HR/MIN), s = Math.floor(ms%MIN/1e3); return `${h}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`; };
 const fHM = ms => { ms = Math.max(0,ms); const h = Math.floor(ms/HR), m = Math.round(ms%HR/MIN); return h ? `${h}h ${m}m` : `${m}m`; };
-const fHrs = h => h.toFixed(2);
+const fHrs = h => (Math.abs(h) < 0.005 ? 0 : h).toFixed(2);
 const money = n => (n<0?'-':'') + '$' + Math.abs(n).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
 const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const pad = n => String(n).padStart(2,'0');
@@ -904,7 +904,7 @@ const chMsgs = ch => (db.messages||[]).filter(m => m.ch===ch).sort((a,b)=>a.t-b.
 function unread(who, ch){ const r = db.reads?.[who]?.[ch] || 0; return chMsgs(ch).filter(m => m.t > r && m.from !== who).length; }
 function markRead(who, ch){ const last = chMsgs(ch).slice(-1)[0]; if (!last) return false; const r = (db.reads ||= {})[who] ||= {}; if ((r[ch]||0) >= last.t) return false; r[ch] = last.t; return true; }
 function readersOf(m){ return Object.entries(db.reads||{}).filter(([who, chs]) => who !== m.from && (chs[m.ch]||0) >= m.t).map(([who]) => who); }
-function postMsg(ch, from, text){ (db.messages ||= []).push({id:id('M'), ch, from, text, t:now()}); markRead(from, ch); if (db.messages.length > 600) db.messages.splice(0, db.messages.length - 600); }
+function postMsg(ch, from, text, by){ (db.messages ||= []).push({id:id('M'), ch, from, text, t:now(), ...(by ? {by} : {})}); markRead(from, ch); if (db.messages.length > 600) db.messages.splice(0, db.messages.length - 600); }
 
 /* ---------- Checklists ---------- */
 function runFor(listId, day, create=false){
@@ -948,8 +948,23 @@ function crewAppBase(){
 function tagUrl(tag){ const b = crewAppBase(); return (b.endsWith('.html') ? b : b + 'index.html') + '?tag=' + encodeURIComponent(tag.code); }
 const deviceEmp = () => PROD ? (session && session.role === 'crew' ? session.emp : null) : (deviceKey ? db.devices[deviceKey]?.emp || null : null);
 
+/* Background refreshes (new data from the server, the clock ticking) rebuild the screen. Keep whatever
+   someone is typing (chat messages, notes, forms), the cursor and the open keyboard across that rebuild. */
+function keepForm(fn){
+  const vals = [];
+  document.querySelectorAll('input[id],textarea[id],select[id]').forEach(el => {
+    if (el.type === 'file' || el.type === 'password' || el.closest('#modalRoot,#sheetRoot')) return;
+    vals.push([el.id, (el.type === 'checkbox' || el.type === 'radio') ? el.checked : el.value]);
+  });
+  const a = document.activeElement, fid = a && a.id && a.matches && a.matches('input,textarea,select') ? a.id : null;
+  let s0 = null, s1 = null; try { if (fid){ s0 = a.selectionStart; s1 = a.selectionEnd; } } catch(e){}
+  fn();
+  for (const [id, v] of vals){ const el = document.getElementById(id); if (!el) continue;
+    if (typeof v === 'boolean') el.checked = v; else if (el.value !== v && !(el.tagName === 'SELECT' && ![...el.options].some(o => o.value === v))) el.value = v; }
+  if (fid){ const el = document.getElementById(fid); if (el && document.activeElement !== el){ try { el.focus({preventScroll:true}); if (s0 != null) el.setSelectionRange(s0, s1); } catch(e){} } }
+}
 window.CC = {
-  KEY, ic, P, VTYPE, LOCS, COLORS, MIN, HR, DAY,
+  keepForm, KEY, ic, P, VTYPE, LOCS, COLORS, MIN, HR, DAY,
   get db(){ return db; }, privacyRequest, applyTheme, THEMES: Object.keys(THEME_BG), ready, isOnline, hasServer: !!API, PROD, auth, files, admin, seedProduction, pushNow: () => push(), pull: () => pullNow(true), save, reset, id, log, subscribe: fn => subs.push(fn),
   now, startOfDay, at, fTime, fDate, fDay, fShort, fDur, fHM, fHrs, money, esc, pad, toDateInput, toTimeInput, fromInputs, initialsOf,
   dist, bearing, fDist, venueActive, periodStart, periodLen, empById, venueById, workedMs, liveFor, summary, punchIssues,

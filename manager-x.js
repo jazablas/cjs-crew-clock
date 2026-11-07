@@ -101,13 +101,13 @@ function pChat(){
     <aside class="ch-list"><div class="label" style="padding:4px 6px 8px">Channels</div>${chs.filter(c=>!c.dm).map(item).join('')}<div class="label" style="padding:14px 6px 8px">Direct messages</div>${chs.filter(c=>c.dm).map(item).join('')}</aside>
     <section class="ch-pane">
       <header class="ch-h"><div class="title" style="font-size:16px">${esc(cur.name)}</div><div class="meta">${cur.dm ? 'Private conversation' : cur.venue ? `Crew who work at ${esc(venue(cur.venue).name)}` : 'Everyone on the crew'}</div></header>
-      <div class="ch-msgs" id="chMsgs">${msgs.map(m => { const w = who(m.from), mine = m.from==='mgr'; return `<div class="msg ${mine?'mine':''}">${mine?'':avatar(w,28)}<div><div class="meta">${esc(w?.name||'Former crew')} · ${fDate(m.t)} ${fTime(m.t)}</div><div class="bubble">${esc(m.text)}</div></div></div>`; }).join('') || '<div class="small muted" style="padding:20px">Say hello. Crew see this in the Team tab of the crew app.</div>'}
+      <div class="ch-msgs" id="chMsgs">${msgs.map(m => { const w = m.from==='mgr' && m.by ? {...who('mgr'), name:m.by, initials:m.by.split(/\s+/).map(x=>x[0]).join('').slice(0,2).toUpperCase()} : who(m.from), mine = m.from==='mgr'; return `<div class="msg ${mine?'mine':''}">${mine?'':avatar(w,28)}<div><div class="meta">${esc(w?.name||'Former crew')} · ${fDate(m.t)} ${fTime(m.t)}</div><div class="bubble">${esc(m.text)}</div></div></div>`; }).join('') || '<div class="small muted" style="padding:20px">Say hello. Crew see this in the Team tab of the crew app.</div>'}
       ${lastMine ? `<div class="meta seen">${seen.length ? `Seen by ${seen.join(', ')}` : 'Not seen yet'}</div>` : ''}</div>
       <div class="ch-comp"><input class="input" id="chatText" placeholder="Message ${esc(cur.name)}" autocomplete="off"><button class="btn primary sm" data-act="chat-send">Send</button></div>
     </section></div>`;
 }
 EXT.acts['chat-open'] = (el, v) => { M.chat = v; };
-EXT.acts['chat-send'] = () => { const t = val('chatText').trim(); if (!t){ toast('Type a message first'); return false; } CC.postMsg(M.chat, 'mgr', t); if (M.chat.startsWith('DM:')) CC.notify(M.chat.slice(3), `New message from ${MGRN()}: ${t}`, 'Push', 'chat'); commit(); setTimeout(() => { const b = document.getElementById('chMsgs'); if (b) b.scrollTop = b.scrollHeight; document.getElementById('chatText')?.focus(); }, 0); };
+EXT.acts['chat-send'] = () => { const t = val('chatText').trim(); if (!t){ toast('Type a message first'); return false; } CC.postMsg(M.chat, 'mgr', t, MGRN()); if (M.chat.startsWith('DM:')) CC.notify(M.chat.slice(3), `New message from ${MGRN()}: ${t}`, 'Push', 'chat'); commit(); setTimeout(() => { const b = document.getElementById('chMsgs'); if (b) b.scrollTop = b.scrollHeight; document.getElementById('chatText')?.focus(); }, 0); };
 EXT.counts.chat = () => CC.channelsFor('mgr').reduce((a,c)=>a + CC.unread('mgr', c.id), 0);
 document.addEventListener('keydown', ev => { if (ev.key==='Enter' && ev.target.id==='chatText'){ ev.preventDefault(); document.querySelector('[data-act=chat-send]')?.click(); } });
 

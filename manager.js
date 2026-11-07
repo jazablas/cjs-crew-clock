@@ -195,7 +195,7 @@ function pLive(){
         <td>${[...(p.flags||[]).map(f=>badge(esc(f),'warn')), p.exception==='pending'?badge('Exception','warn'):'', long?badge(`Over ${ST().autoClockOutHrs} hrs`,'bad'):''].join(' ') || '<span class="faint small">None</span>'}</td>
         <td class="r num">${money(laborCost(p))}</td>
         <td class="r"><div class="row" style="justify-content:flex-end;gap:6px;flex-wrap:wrap">
-          ${b.open ? `<button class="btn sm" data-act="end-break" data-v="${p.id}">End break</button>` : ''}
+          ${b.open ? `<button class="btn sm" data-act="end-break" data-v="${p.id}">End break</button>` : `<button class="btn sm" data-act="mgr-brk" data-v="${p.id}" data-k="meal" title="Start a meal break for them">${ic('meal')} Meal</button><button class="btn sm" data-act="mgr-brk" data-v="${p.id}" data-k="rest" title="Start a rest break for them">${ic('coffee')} Rest</button>`}
           <button class="btn sm" data-act="note-open" data-v="${p.id}" title="Send a note">${ic('mega')}</button>
           <button class="btn sm" data-act="punch-edit" data-v="${p.id}" title="Edit">${ic('edit')}</button>
           <button class="btn sm primary" data-act="clockout-open" data-v="${p.id}">Clock out</button>
@@ -414,7 +414,7 @@ function pCrew(){
       ${signinCell(e)}
       <td class="r num">${fHrs(s.hours)}</td>
       <td>${e.active===false ? badge('Inactive') : live ? badge('On the clock','ok') : badge('Active','info')}</td>
-      <td class="r"><button class="btn sm" data-act="emp-edit" data-v="${e.id}">${ic('edit')} Edit</button></td>
+      <td class="r"><div class="row" style="justify-content:flex-end;gap:6px;flex-wrap:wrap">${e.active!==false ? (() => { const lp = D().punches.find(p => p.emp===e.id && !p.outT); return lp ? `<button class="btn sm" data-act="clockout-open" data-v="${lp.id}" title="Clock ${esc(e.name.split(' ')[0])} out">${ic('clock')} Clock out</button>` : `<button class="btn sm" data-act="clockin-open" data-v="${e.id}" title="Clock ${esc(e.name.split(' ')[0])} in">${ic('clock')} Clock in</button>`; })() : ''}<button class="btn sm" data-act="emp-edit" data-v="${e.id}">${ic('edit')} Edit</button></div></td>
     </tr>`; }).join('') || `<tr><td colspan="7" class="muted small">${M.crewQ ? `No crew match “${esc(M.crewQ)}”.` : 'No crew yet. Tap Add crew member to add your first person.'}</td></tr>`}</tbody></table></div>`;
 }
 
@@ -1123,6 +1123,10 @@ document.addEventListener('click', ev => {
     /* live */
     case 'end-break': { const p = D().punches.find(x=>x.id===v); const b = p.breaks.find(x=>!x.end); if (b){ b.end = now(); commit(`Ended ${b.type} break for ${emp(p.emp).name}`); toast('Break ended'); } break; }
     case 'clockin-open': modalClockIn(v, el.dataset.shift); return;
+    case 'mgr-brk': { const p = D().punches.find(x=>x.id===v); if (!p || p.outT){ toast('They’re not on the clock'); return; } if ((p.breaks||[]).some(b=>!b.end)){ toast('They’re already on a break'); return; }
+      const k = el.dataset.k === 'meal' ? 'meal' : 'rest', nx = CC.nextBreakFor(p, k), min = nx?.min ?? (k==='meal' ? ST().mealMin : ST().restMin);
+      (p.breaks ||= []).push({type:k, start:now(), min, by:MGR()}); p.mgrNote = `${MGR()} started your ${k==='meal' ? 'meal' : min+'-minute'} break`;
+      commit(`Started ${k==='meal' ? 'meal' : min+'-min rest'} break for ${emp(p.emp).name}`); toast(`${emp(p.emp).name.split(' ')[0]} is on a ${k==='meal'?'meal':'rest'} break`); break; }
     case 'ci-save': {
       const empId = val('ci-emp'), e = emp(empId), role = val('ci-role'), vid = val('ci-venue');
       const t = fromInputs(toDateInput(now()), val('ci-time')); const note = val('ci-note').trim();
@@ -1338,7 +1342,8 @@ CC.subscribe((prev, next) => {
     else if (newIn.length) toast(`${emp(newIn[0].emp)?.name} clocked in at ${venue(newIn[0].venue).name}`);
     else if (newOut.length) toast(`${emp(newOut[0].emp)?.name} clocked out`);
   }
-  if (!modalRoot.innerHTML){ const y = window.scrollY; render(); window.scrollTo(0,y); }
+  if (!modalRoot.innerHTML){ const y = window.scrollY; const cm = document.getElementById('chMsgs'), atEnd = cm ? cm.scrollHeight - cm.scrollTop - cm.clientHeight < 40 : true, cTop = cm ? cm.scrollTop : 0;
+    CC.keepForm(render); window.scrollTo(0,y); const c2 = document.getElementById('chMsgs'); if (c2) c2.scrollTop = atEnd ? c2.scrollHeight : cTop; }
 });
 let lastMin = -1;
 setInterval(() => {
