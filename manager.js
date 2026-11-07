@@ -145,7 +145,7 @@ function renderLogin(){
   <div class="m-login">
     <div class="m-login-card">
       <span class="proto-tag">Prototype · sample data</span>
-      <div class="hero-word" style="margin:22px 0 6px">Boss<br>Crew<br><span>Manager</span></div>
+      <div class="hero-word" style="margin:22px 0 6px">CJ&rsquo;s<br>Crew<br><span>Manager</span></div>
       <p class="muted small" style="margin-bottom:18px">Run every CJ&rsquo;s Wings venue from one screen: live headcount, approvals, timesheets, schedules, crew, geofences and payroll.</p>
       <div class="label" style="text-align:center">Manager PIN</div>
       <div class="pin-dots ${M.pinErr?'shake':''}" aria-label="${M.pin.length} of 4 digits entered">${[0,1,2,3].map(i=>`<i class="${i<M.pin.length?'f':''}"></i>`).join('')}</div>
@@ -987,7 +987,7 @@ function renderProdLogin(){
   </div></div>`;
   return `
   <div class="m-login"><div class="m-login-card">
-    <div class="hero-word" style="margin:8px 0 6px">Boss<br>Crew<br><span>Manager</span></div>
+    <div class="hero-word" style="margin:8px 0 6px">CJ&rsquo;s<br>Crew<br><span>Manager</span></div>
     <p class="muted small" style="margin-bottom:14px">Sign in with your mobile number and 6-digit manager PIN.</p>
     <div style="text-align:left">
       <label class="field"><span>Mobile number</span><input class="input num" id="ml-phone" type="tel" inputmode="tel" autocomplete="tel" placeholder="(310) 555-0100" value="${esc(fmtPhone(M.phone||''))}"></label>

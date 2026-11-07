@@ -92,7 +92,7 @@ function renderLogin(){
   const step = S.loginStep || 'phone';
   if (step === 'phone') return `
     <div class="signin">
-      ${S.tapPending ? tapBanner() : `<div style="margin:34px 0 8px" class="hero-word">Boss<br>Crew<br><span>Clock</span></div>`}
+      ${S.tapPending ? tapBanner() : `<div style="margin:34px 0 8px" class="hero-word">CJ&rsquo;s<br>Crew<br><span>Clock</span></div>`}
       <p class="muted" style="margin-bottom:22px">Sign in with the phone number and 6-digit PIN your manager gave you.</p>
       <label class="field"><span>Mobile number</span><input class="input num" id="liPhone" type="tel" inputmode="tel" autocomplete="tel" placeholder="(310) 555-0100" value="${esc(fmtPhone(S.phone))}"></label>
       <label class="check" style="margin-top:6px"><input type="checkbox" data-act="li-remember" ${S.remember?'checked':''}><span><b>Keep me signed in on this phone</b><br><span class="faint small">Then a sticker tap clocks you in right away. Turn off on a shared phone.</span></span></label>
@@ -179,7 +179,7 @@ function renderAuth(){
     <div class="signin">
       <div class="row between"><span class="proto-tag">Prototype · sample data</span>
         <button class="icon-btn demo-fab" data-act="demo-toggle" aria-label="Prototype controls">${ic('sliders')}</button></div>
-      ${S.tapPending ? tapBanner() : `<div style="margin:34px 0 8px" class="hero-word">Boss<br>Crew<br><span>Clock</span></div>`}
+      ${S.tapPending ? tapBanner() : `<div style="margin:34px 0 8px" class="hero-word">CJ&rsquo;s<br>Crew<br><span>Clock</span></div>`}
       <p class="muted" style="margin-bottom:24px">Punch in and out at any CJ&rsquo;s Wings venue: the Pico kitchen, stadium stands, pop-ups or the truck.</p>
       <button class="guide-cta" data-act="open-guide">${ic('info')}<span><b>New here? How this prototype works</b><small>Features, demo controls and a 5-minute walkthrough</small></span>${ic('chev')}</button>
       <div class="label" style="margin-bottom:10px">${S.tapPending ? 'Who&rsquo;s tapping? (one time on this phone)' : 'Who&rsquo;s clocking in?'}</div>
